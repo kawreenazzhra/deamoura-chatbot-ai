@@ -45,6 +45,10 @@ GEMINI_API_KEY=YOUR_GOOGLE_GEMINI_API_KEY
 META_ACCESS_TOKEN=YOUR_META_PAGE_ACCESS_TOKEN
 META_VERIFY_TOKEN=YOUR_META_VERIFY_TOKEN
 
+4 add AI SDK
+npm add ai @ai-sdk/react @ai-sdk/google
+
+
 💻 Menjalankan Proyek Secara Lokal
 npm run dev
 Aplikasi akan berjalan di:
