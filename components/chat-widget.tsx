@@ -1,4 +1,5 @@
-'use client';
+// components/chat-widget.tsx - SIMPLE VERSION
+"use client";
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,6 @@ interface ChatMessage {
   text: string;
   isUser: boolean;
   timestamp: Date;
-  products?: any[];
 }
 
 export function ChatWidget() {
@@ -24,7 +24,7 @@ export function ChatWidget() {
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setMessages([{
-        text: "Haii! 👋 Aku De.Amoura Bot! 💕\nAku siap bantu kamu cari hijab favorit di katalog kita!\nTanya aja tentang produk, warna, atau rekomendasi! ✨",
+        text: "Halo! Saya AI Assistant De.Amoura 👋\nSaya siap membantu Anda:\n• Memilih hijab yang tepat\n• Memberi saran styling\n• Menjelaskan bahan dan perawatan\n• Mengarahkan ke Tokopedia untuk pembelian\n\nSilakan tanyakan apapun tentang hijab!",
         isUser: false,
         timestamp: new Date()
       }]);
@@ -62,14 +62,13 @@ export function ChatWidget() {
       const botMessage: ChatMessage = { 
         text: data.response,
         isUser: false,
-        timestamp: new Date(),
-        products: data.products
+        timestamp: new Date()
       };
       
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       const errorMessage: ChatMessage = { 
-        text: "Haii! Maaf ya, lagi gangguan nih 😔 Coba lagi ya atau langsung lihat katalog kita! 💖", 
+        text: "Maaf, sedang ada gangguan. Silakan coba lagi nanti atau langsung kunjungi katalog kami.", 
         isUser: false,
         timestamp: new Date()
       };
@@ -80,10 +79,10 @@ export function ChatWidget() {
   };
 
   const quickReplies = [
-    "Rekomendasi hijab terbaru",
-    "Hijab warna apa yang ada?",
-    "Harga termurah berapa?",
-    "Lihat semua kategori"
+    "Rekomendasi hijab untuk acara formal",
+    "Bahan yang nyaman untuk sehari-hari",
+    "Cara styling hijab segi empat",
+    "Lihat koleksi pashmina"
   ];
 
   return (
@@ -91,7 +90,7 @@ export function ChatWidget() {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-pink-500 hover:bg-pink-600 text-white rounded-full shadow-lg"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg border-0"
           size="icon"
         >
           <MessageCircle className="w-6 h-6" />
@@ -99,55 +98,47 @@ export function ChatWidget() {
       )}
 
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-80 h-96 flex flex-col z-50">
-          <CardHeader className="flex-row items-center justify-between p-4 border-b">
+        <Card className="fixed bottom-6 right-6 w-80 h-96 flex flex-col z-50 shadow-xl border border-gray-200">
+          <CardHeader className="flex-row items-center justify-between p-4 border-b bg-blue-50 rounded-t-lg">
             <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-bold">D</span>
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">D</span>
               </div>
               <div>
-                <h3 className="font-semibold text-sm">De.Amoura Bot</h3>
-                <p className="text-xs text-gray-500">Online • Fast Response</p>
+                <h3 className="font-semibold text-gray-800 text-sm">De.Amoura Assistant</h3>
+                <p className="text-xs text-gray-600">Siap membantu</p>
               </div>
             </div>
             <div className="flex space-x-1">
-              <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
+              <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-8 w-8 p-0">
                 <Minimize2 className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
+              <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-8 w-8 p-0">
                 <X className="w-4 h-4" />
               </Button>
             </div>
           </CardHeader>
           
-          <ScrollArea className="flex-1 p-4">
+          <ScrollArea className="flex-1 p-4 bg-white">
             {messages.map((msg, idx) => (
               <div key={idx} className={`mb-4 ${msg.isUser ? 'text-right' : 'text-left'}`}>
-                <div className={`inline-block max-w-[80%] p-3 rounded-2xl ${
+                <div className={`inline-block max-w-[85%] p-3 rounded-2xl ${
                   msg.isUser 
-                    ? 'bg-pink-500 text-white rounded-br-none'
-                    : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                    ? 'bg-blue-500 text-white rounded-br-none'
+                    : 'bg-gray-100 text-gray-800 rounded-bl-none border border-gray-200'
                 }`}>
                   {msg.text.split('\n').map((line, i) => (
-                    <p key={i} className="text-sm">{line}</p>
+                    <p key={i} className="text-sm leading-relaxed">{line}</p>
                   ))}
-                  
-                  {msg.products && msg.products.length > 0 && (
-                    <div className="mt-2 p-2 bg-white bg-opacity-50 rounded">
-                      <p className="text-xs font-semibold mb-1">💖 Produk Rekomendasi:</p>
-                      {msg.products.map((product: any, i: number) => (
-                        <div key={i} className="text-xs">
-                          • {product.name} - Rp {product.price}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
+                <p className="text-xs text-gray-500 mt-1 px-2">
+                  {msg.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                </p>
               </div>
             ))}
             {loading && (
               <div className="text-left">
-                <div className="inline-block bg-gray-100 p-3 rounded-2xl rounded-bl-none">
+                <div className="inline-block bg-gray-100 p-3 rounded-2xl rounded-bl-none border border-gray-200">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
@@ -159,18 +150,19 @@ export function ChatWidget() {
             <div ref={messagesEndRef} />
           </ScrollArea>
 
-          <div className="p-3 border-t">
+          <div className="p-3 border-t bg-white rounded-b-lg">
             <div className="flex flex-wrap gap-1 mb-2">
               {quickReplies.map((reply, index) => (
-                <Button
+                <button
                   key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setInput(reply)}
-                  className="text-xs h-7"
+                  onClick={() => {
+                    setInput(reply);
+                    setTimeout(() => handleSend(), 100);
+                  }}
+                  className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full border border-blue-200 hover:bg-blue-100 transition-colors"
                 >
                   {reply}
-                </Button>
+                </button>
               ))}
             </div>
             
@@ -179,14 +171,14 @@ export function ChatWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Tanya tentang hijab..."
-                className="flex-1 text-sm"
+                className="flex-1 text-sm border-gray-300 focus:border-blue-500"
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               />
               <Button 
                 onClick={handleSend}
                 disabled={loading}
                 size="icon"
-                className="bg-pink-500 hover:bg-pink-600"
+                className="bg-blue-500 hover:bg-blue-600 border-0"
               >
                 <Send className="w-4 h-4" />
               </Button>
