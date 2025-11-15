@@ -2,10 +2,8 @@
 import React, { useState } from 'react';
 import { ShoppingBag, MessageCircle, Search, X, Send, Instagram, Phone, MapPin } from 'lucide-react';
 
-// Define TypeScript interfaces
 interface Color {
   name: string;
-  hex: string;
   image: string;
 }
 
@@ -38,132 +36,147 @@ const HijabCatalog = () => {
   const products: Product[] = [
     {
       id: 1,
-      name: 'Pashmina Premium Silk',
-      category: 'Pashmina',
-      price: 'Rp 89.000',
+      name: 'Hijab Bella Square Segi Empat',
+      category: 'Segi Empat',
+      price: 'Rp 25.000',
       image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80',
-      tokopediaLink: 'https://www.tokopedia.com/de-amoura',
-      description: 'Pashmina premium dengan bahan silk yang lembut dan adem',
+      tokopediaLink: 'https://www.tokopedia.com/de-amoura/deamoura-hijab-bella-square-segi-empat-muslim-1731034641052173528?extParam=src%3Dshop%26whid%3D18851891&aff_unique_id=&channel=others&chain_key=',
+      description: 'Bella Square adalah produk yang dapat membantu mengurangi rasa sakit pada area yang digunakan. Produk ini memiliki desain yang ergonomis dan mudah digunakan.',
       colors: [
-        { name: 'Dusty Pink', hex: '#d4a5a5', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
-        { name: 'Soft Brown', hex: '#a67c52', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' },
-        { name: 'Cream', hex: '#f5f5dc', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' },
-        { name: 'Navy', hex: '#1e3a5f', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
-        { name: 'Black', hex: '#1a1a1a', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' }
+        { name: 'Blush Pink', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
+        { name: 'Pink', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' },
+        { name: 'Dusty Pink', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' },
+        { name: 'Denim', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
+        { name: 'Light Grey', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Dark Grey', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Grey', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Black', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Lilac', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Olive Green', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Caramel', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Peach', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Mustard', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Coffe', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' }
       ]
     },
     {
       id: 2,
-      name: 'Segi Empat Voal',
-      category: 'Segi Empat',
-      price: 'Rp 65.000',
+      name: 'Pashmina Airflow',
+      category: 'Pashmina',
+      price: 'Rp 55.500',
       image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80',
-      tokopediaLink: 'https://www.tokopedia.com/de-amoura',
-      description: 'Hijab segi empat dengan bahan voal premium',
+      tokopediaLink: 'https://www.tokopedia.com/de-amoura/deamoura-pashmina-airflow-cocok-untuk-lebaran-bahan-lembut-meleyot-payet-dewasa-kerudung-syari-instan-karet-muslim-jilbab-mutiara-wanita-1730971145350186200?extParam=src%3Dshop%26whid%3D18851891&aff_unique_id=&channel=others&chain_key=',
+      description: 'Pashmina Airflow adalah produk yang dijual dengan bahan yang ringan dan mudah menyerap keringat sehingga nyaman digunakan dalam waktu lama.',
       colors: [
-        { name: 'Mint', hex: '#98d8c8', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
-        { name: 'Lilac', hex: '#c8a8d8', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
-        { name: 'Peach', hex: '#ffb88c', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
-        { name: 'Grey', hex: '#808080', image: 'https://images.unsplash.com/photo-1601925259926-2b5d6c64dbb1?w=500&q=80' },
-        { name: 'White', hex: '#f8f8f8', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' }
+        { name: 'Milo', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
+        { name: 'Sand', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Taupe', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
+        { name: 'Latte', image: 'https://images.unsplash.com/photo-1601925259926-2b5d6c64dbb1?w=500&q=80' },
+        { name: 'Creamy', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' },
+        { name: 'Milky', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' }
       ]
     },
     {
       id: 3,
-      name: 'Bergo InstanDaily',
-      category: 'Bergo',
-      price: 'Rp 55.000',
-      image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80',
-      tokopediaLink: 'https://www.tokopedia.com/de-amoura',
-      description: 'Bergo instan praktis untuk aktivitas sehari-hari',
+      name: 'Hijab motif Segi Empat',
+      category: 'Segi Empat',
+      price: 'Rp 44.000',
+      image: 'https://www.hijup.com/magazine/wp-content/uploads/2024/10/0cf58685-jilbab-segiempat-motif-mewah.jpg',
+      tokopediaLink: 'https://www.tokopedia.com/de-amoura/hijab-motif-edisi-terbaru-dari-produk-de-amoura-kerudung-segi-empat-square-muslim-1730855332409476312?extParam=src%3Dshop%26whid%3D18851891&aff_unique_id=&channel=others&chain_key=',
+      description: 'Hijab motif adalah jenis hijab yang memiliki pola atau desain tertentu yang tercetak pada permukaan kainnya.',
       colors: [
-        { name: 'Maroon', hex: '#800000', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
-        { name: 'Olive', hex: '#808000', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' },
-        { name: 'Caramel', hex: '#c68642', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
-        { name: 'Dark Brown', hex: '#654321', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' },
-        { name: 'Charcoal', hex: '#36454f', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' }
+        { name: 'De Black Brown', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'De Light Grey', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' },
+        { name: 'De Dark Grey', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
+        { name: 'De Blue', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' }
       ]
     },
     {
       id: 4,
-      name: 'Khimar Syari',
-      category: 'Khimar',
-      price: 'Rp 125.000',
+      name: 'Pashmina Rayon',
+      category: 'Pashmina',
+      price: 'Rp 40.000',
       image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80',
-      tokopediaLink: 'https://www.tokopedia.com/de-amoura',
-      description: 'Khimar syari dengan model terbaru',
+      tokopediaLink: 'https://www.tokopedia.com/de-amoura/de-amoura-jilbab-pashmina-rayon-hijab-meleyot-pashmina-kaos-rayon-muslim-wanita-kerudung-1730873813270693080?extParam=src%3Dshop%26whid%3D18851891&aff_unique_id=&channel=others&chain_key=',
+      description: 'Pashmina rayon adalah selendang atau jilbab yang terbuat dari serat rayon, yang lembut, ringan, dan nyaman dipakai.',
       colors: [
-        { name: 'Black', hex: '#1a1a1a', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
-        { name: 'Navy', hex: '#1e3a5f', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
-        { name: 'Dark Grey', hex: '#4a4a4a', image: 'https://images.unsplash.com/photo-1601925259926-2b5d6c64dbb1?w=500&q=80' },
-        { name: 'Chocolate', hex: '#3d2817', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' },
-        { name: 'Burgundy', hex: '#6b1f29', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' }
+        { name: 'Light Grey', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Dusty Pastel', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
+        { name: 'Khaki', image: 'https://images.unsplash.com/photo-1601925259926-2b5d6c64dbb1?w=500&q=80' },
+        { name: 'Black', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' }
       ]
     },
     {
       id: 5,
-      name: 'Sport Hijab Active',
-      category: 'Sport',
-      price: 'Rp 75.000',
-      image: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=500&q=80',
-      tokopediaLink: 'https://www.tokopedia.com/de-amoura',
-      description: 'Hijab sport untuk olahraga dengan bahan breathable',
+      name: 'Plain Square Segi Empat',
+      category: 'Segi Empat',
+      price: 'Rp 26.500',
+      image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80',
+      tokopediaLink: 'https://www.tokopedia.com/de-amoura/deamoura-hijab-bella-square-segi-empat-muslim-1731034641052173528?extParam=src%3Dshop%26whid%3D18851891&aff_unique_id=&channel=others&chain_key=',
+      description: 'Plain Square Hijab adalah jenis hijab yang sangat sederhana, elegan, dan serbaguna. Hijab ini berbentuk segi empat yang tidak memiliki jahitan rapi, hanya terdiri dari beberapa warna.',
       colors: [
-        { name: 'Black', hex: '#1a1a1a', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
-        { name: 'Navy', hex: '#1e3a5f', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
-        { name: 'Red', hex: '#d32f2f', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
-        { name: 'Blue', hex: '#1976d2', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
-        { name: 'Purple', hex: '#7b1fa2', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' }
+        { name: 'Pine', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
+        { name: 'White', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' },
+        { name: 'Broken White', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' }
       ]
     },
     {
       id: 6,
-      name: 'Pashmina Ceruty',
-      category: 'Pashmina',
-      price: 'Rp 69.000',
-      image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80',
+      name: 'Paris Premium Segi Empat',
+      category: 'Segi Empat',
+      price: 'Rp 25.000',
+      image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80',
       tokopediaLink: 'https://www.tokopedia.com/de-amoura',
-      description: 'Pashmina ceruty dengan berbagai pilihan warna',
+      description: 'Paris Premium adalah produk yang memiliki kualitas premium dan terbuat dari bahan-bahan berkualitas tinggi.',
       colors: [
-        { name: 'Salmon', hex: '#fa8072', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
-        { name: 'Mustard', hex: '#ffdb58', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' },
-        { name: 'Teal', hex: '#008080', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
-        { name: 'Mauve', hex: '#e0b0ff', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
-        { name: 'Beige', hex: '#d2b48c', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' }
+        { name: 'Green Tea', image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=500&q=80' },
+        { name: 'Toska', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
+        { name: 'Lilac', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Mustard', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
+        { name: 'Dusty Pink', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Stone', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Coklat Tua', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Mocca', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Broken White', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'White', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Dark Olive', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Black', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Latte', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Red', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Sage', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Frapuchino', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Khaki', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Sky Blue', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' },
+        { name: 'Sand', image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=500&q=80' }
       ]
     },
     {
       id: 7,
-      name: 'Segi Empat Maxmara',
+      name: 'Paris Jadul Segi Empat',
       category: 'Segi Empat',
-      price: 'Rp 79.000',
+      price: 'Rp 26.500',
       image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80',
       tokopediaLink: 'https://www.tokopedia.com/de-amoura',
-      description: 'Hijab segi empat bahan maxmara premium',
+      description: 'Hijab Paris Jadul umumnya terbuat dari kain yang ringan dan lembut, memberikan kenyamanan saat dipakai.',
       colors: [
-        { name: 'Emerald', hex: '#50c878', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
-        { name: 'Coral', hex: '#ff7f50', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
-        { name: 'Taupe', hex: '#b38b6d', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' },
-        { name: 'Slate', hex: '#708090', image: 'https://images.unsplash.com/photo-1601925259926-2b5d6c64dbb1?w=500&q=80' },
-        { name: 'Ivory', hex: '#fffff0', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' }
+        { name: 'Mocca Muda', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
+        { name: 'Green Milieu', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' }
       ]
     },
     {
       id: 8,
-      name: 'Bergo Pad Antem',
-      category: 'Bergo',
-      price: 'Rp 85.000',
-      image: 'https://images.unsplash.com/photo-1601925259926-2b5d6c64dbb1?w=500&q=80',
+      name: 'Paris Japan Segi Empat',
+      category: 'Segi Empat',
+      price: 'Rp 60.000',
+      image: 'https://down-id.img.susercontent.com/file/aeb50bc9a3f7d602624104fd0cee7f04',
       tokopediaLink: 'https://www.tokopedia.com/de-amoura',
-      description: 'Bergo dengan pad antem untuk tampilan lebih rapi',
+      description: 'Koleksi eksklusif produk original dari Paris dan Jepang dengan jaminan kualitas premium dan daya tahan optimal.',
       colors: [
-        { name: 'Rose Gold', hex: '#b76e79', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
-        { name: 'Sand', hex: '#c2b280', image: 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=500&q=80' },
-        { name: 'Mocha', hex: '#967969', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' },
-        { name: 'Army Green', hex: '#4b5320', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
-        { name: 'Ash Grey', hex: '#b2beb5', image: 'https://images.unsplash.com/photo-1601925259926-2b5d6c64dbb1?w=500&q=80' }
+        { name: 'Nude', image: 'https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?w=500&q=80' },
+        { name: 'Ash', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&q=80' },
+        { name: 'Blush', image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=500&q=80' }
       ]
-    }
+    },
   ];
 
   const filteredProducts = products.filter(product => {
@@ -186,15 +199,19 @@ const HijabCatalog = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-amber-200 to-amber-300 shadow-lg sticky top-0 z-40">
+    // Latar belakang diubah menjadi gradien 'orange' yang lebih gelap (coklat)
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200 text-orange-900">
+      
+      {/* Header diubah menjadi warna coklat yang lebih gelap */}
+      <header className="bg-amber-800 shadow-lg sticky top-0 z-40 text-white bg-linear-to-r from-amber-700 to-amber-800">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             {/* Logo & Brand */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-amber-400">
+                {/* Logo placeholder, dengan latar belakang terang untuk kontras */}
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-orange-600">
+                  {/* Gambar placeholder dengan tema coklat agar sesuai */}
                   <img 
                     src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center" 
                     alt="de.amoura Logo" 
@@ -202,18 +219,18 @@ const HijabCatalog = () => {
                   />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-amber-900">de.amoura</h1>
-                  <p className="text-xs text-amber-800">Hijab & Fashion Muslim</p>
+                  <h1 className="text-2xl font-bold text-white">de.amoura</h1>
+                  <p className="text-xs text-orange-200">Hijab & Fashion Muslim</p>
                 </div>
               </div>
             </div>
 
-            {/* CTA Button */}
+            {/* CTA Button diubah ke coklat yang lebih terang dengan teks warna putih */}
             <a 
               href="https://www.tokopedia.com/de-amoura" 
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-amber-900 text-amber-50 px-6 py-2.5 rounded-full hover:bg-amber-800 transition-all duration-300 font-semibold shadow-md hover:shadow-lg flex items-center space-x-2"
+              className="bg-amber-700 text-gray-50 px-6 py-2.5 rounded-full hover:bg-amber-600 transition-all duration-300 font-semibold shadow-md hover:shadow-lg flex items-center space-x-2"
             >
               <ShoppingBag className="w-4 h-4" />
               <span>Belanja Sekarang</span>
@@ -225,8 +242,8 @@ const HijabCatalog = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-amber-900 mb-3">Koleksi Hijab Premium</h2>
-          <p className="text-amber-700 max-w-2xl mx-auto">
+          <h2 className="text-4xl font-bold text-orange-900 mb-3">Koleksi Hijab Premium</h2>
+          <p className="text-orange-700 max-w-2xl mx-auto">
             Temukan berbagai pilihan hijab berkualitas tinggi dengan desain modern dan elegan untuk melengkapi penampilanmu
           </p>
         </div>
@@ -236,13 +253,14 @@ const HijabCatalog = () => {
           <div className="flex justify-center">
             {/* Search Bar */}
             <div className="relative flex-1 max-w-md w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-amber-500 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-500 w-5 h-5 focus:text-orange-800" />
               <input
                 type="text"
                 placeholder="Cari produk hijab berdasarkan nama, kategori, atau deskripsi..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-amber-200 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent text-amber-900 placeholder-amber-400"
+                // Warna border dan ring diubah ke 'orange'
+                className="w-full pl-10 pr-4 py-3 border border-orange-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-800 focus:border-transparent text-orange-900 placeholder-orange-500 focus:placeholder-transparent"
               />
             </div>
           </div>
@@ -250,10 +268,10 @@ const HijabCatalog = () => {
           {/* Search Info */}
           {searchQuery && (
             <div className="text-center mt-4">
-              <p className="text-sm text-amber-700">
+              <p className="text-sm text-orange-700">
                 Menampilkan {filteredProducts.length} produk untuk pencarian "{searchQuery}"
                 {filteredProducts.length === 0 && (
-                  <span className="block mt-1 text-amber-600">
+                  <span className="block mt-1 text-orange-600">
                     Coba cari dengan kata kunci lain seperti "Pashmina", "Bergo", atau "Sport"
                   </span>
                 )}
@@ -267,7 +285,7 @@ const HijabCatalog = () => {
           {filteredProducts.map(product => (
             <div 
               key={product.id}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-amber-100"
+              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-orange-200"
             >
               <div className="relative overflow-hidden h-64">
                 <img 
@@ -275,22 +293,24 @@ const HijabCatalog = () => {
                   alt={product.name}
                   className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                 />
-                <div className="absolute top-3 right-3 bg-amber-500 text-amber-50 px-3 py-1 rounded-full text-sm font-medium">
+                {/* Badge diubah menjadi warna coklat yang lebih gelap */}
+                <div className="absolute top-3 right-3 bg-orange-700 text-white px-3 py-1 rounded-full text-sm font-medium">
                   {product.category}
                 </div>
               </div>
               <div className="p-5">
-                <h3 className="text-lg font-bold text-amber-900 mb-2">{product.name}</h3>
-                <p className="text-amber-700 text-sm mb-3">{product.description}</p>
+                <h3 className="text-lg font-bold text-orange-900 mb-2">{product.name}</h3>
+                <p className="text-orange-700 text-sm mb-3">{product.description}</p>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xl font-bold text-amber-600">{product.price}</span>
+                  <span className="text-xl font-bold text-orange-800">{product.price}</span>
                 </div>
+                {/* Tombol diubah menjadi coklat gelap */}
                 <button
                   onClick={() => {
                     setSelectedProduct(product);
                     setSelectedColor(null);
                   }}
-                  className="block w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white text-center py-3 rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+                  className="block w-full bg-amber-700 text-white text-center py-3 rounded-xl hover:bg-orange-700 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
                 >
                   Pilih Warna
                 </button>
@@ -302,15 +322,16 @@ const HijabCatalog = () => {
         {/* No Results Message */}
         {searchQuery && filteredProducts.length === 0 && (
           <div className="text-center py-12">
-            <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md mx-auto border border-amber-100">
-              <Search className="w-16 h-16 text-amber-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-amber-900 mb-2">Produk tidak ditemukan</h3>
-              <p className="text-amber-700 mb-4">
+            <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md mx-auto border border-orange-200">
+              <Search className="w-16 h-16 text-orange-300 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-orange-900 mb-2">Produk tidak ditemukan</h3>
+              <p className="text-orange-700 mb-4">
                 Tidak ada produk yang cocok dengan pencarian "{searchQuery}"
               </p>
+              {/* Tombol diubah menjadi coklat gelap */}
               <button
                 onClick={() => setSearchQuery('')}
-                className="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-6 py-2 rounded-full hover:from-amber-600 hover:to-amber-700 transition-all duration-300"
+                className="bg-orange-800 text-white px-6 py-2 rounded-full hover:bg-orange-700 transition-all duration-300"
               >
                 Tampilkan Semua Produk
               </button>
@@ -319,14 +340,14 @@ const HijabCatalog = () => {
         )}
       </div>
 
-      {/* Footer */}
-      <footer className="bg-gradient-to-r from-amber-200 to-amber-300 text-amber-900 py-12">
+      {/* Footer diubah menjadi coklat gelap */}
+      <footer className="bg-amber-800 text-orange-300 py-7 bg-linear-to-r from-amber-700 to-amber-800">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Brand Section */}
             <div className="md:col-span-2">
               <div className="flex items-center space-x-4 mb-4">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-amber-400">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-orange-600">
                   <img 
                     src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center" 
                     alt="de.amoura Logo" 
@@ -334,24 +355,24 @@ const HijabCatalog = () => {
                   />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold">de.amoura</h3>
-                  <p className="text-amber-800">Hijab & Fashion Muslim Premium</p>
+                  <h3 className="text-2xl font-bold text-white">de.amoura</h3>
+                  <p className="text-orange-200">Hijab & Fashion Muslim Premium</p>
                 </div>
               </div>
-              <p className="text-amber-800 max-w-md">
+              <p className="text-orange-200 max-w-md">
                 Menyediakan berbagai koleksi hijab berkualitas tinggi dengan desain modern dan elegan untuk penampilan muslimah yang stylish.
               </p>
             </div>
 
             {/* Contact Info */}
             <div>
-              <h4 className="text-lg font-semibold mb-4">Kontak Kami</h4>
+              <h4 className="text-lg font-semibold text-white mb-4">Kontak Kami</h4>
               <div className="space-y-3">
                 <a 
                   href="https://instagram.com/de.amoura" 
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center space-x-3 text-amber-800 hover:text-amber-900 transition-colors"
+                  className="flex items-center space-x-3 text-orange-200 hover:text-white transition-colors"
                 >
                   <Instagram className="w-5 h-5" />
                   <span>@de.amoura</span>
@@ -360,12 +381,12 @@ const HijabCatalog = () => {
                   href="https://wa.me/6281234567890" 
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center space-x-3 text-amber-800 hover:text-amber-900 transition-colors"
+                  className="flex items-center space-x-3 text-orange-200 hover:text-white transition-colors"
                 >
                   <Phone className="w-5 h-5" />
                   <span>+62 812-3456-7890</span>
                 </a>
-                <div className="flex items-center space-x-3 text-amber-800">
+                <div className="flex items-center space-x-3 text-orange-200">
                   <MapPin className="w-5 h-5" />
                   <span>Bandung, Indonesia</span>
                 </div>
@@ -374,8 +395,8 @@ const HijabCatalog = () => {
 
             {/* Business Hours */}
             <div>
-              <h4 className="text-lg font-semibold mb-4">Jam Operasional</h4>
-              <div className="space-y-2 text-amber-800">
+              <h4 className="text-lg font-semibold text-white mb-4">Jam Operasional</h4>
+              <div className="space-y-2 text-orange-200">
                 <div className="flex justify-between">
                   <span>Senin - Jumat</span>
                   <span>09:00 - 17:00</span>
@@ -393,8 +414,8 @@ const HijabCatalog = () => {
           </div>
 
           {/* Copyright */}
-          <div className="border-t border-amber-300 mt-8 pt-6 text-center">
-            <p className="text-amber-800">
+          <div className="border-t border-orange-200 mt-8 pt-6 text-center">
+            <p className="text-orange-200">
               &copy; 2024 de.amoura. All rights reserved.
             </p>
           </div>
@@ -404,15 +425,16 @@ const HijabCatalog = () => {
       {/* Color Selection Modal */}
       {selectedProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-amber-100">
-            <div className="sticky top-0 bg-gradient-to-r from-amber-500 to-amber-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-orange-800">
+            {/* Modal Header diubah menjadi coklat gelap */}
+            <div className="sticky top-0 bg-orange-800 text-white p-4 rounded-t-2xl flex items-center justify-between">
               <h3 className="font-bold text-lg">Pilih Warna</h3>
               <button
                 onClick={() => {
                   setSelectedProduct(null);
                   setSelectedColor(null);
                 }}
-                className="hover:bg-white/20 p-1 rounded-full transition-colors"
+                className="hover:bg-orange-700 p-1 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -425,30 +447,34 @@ const HijabCatalog = () => {
                   alt={selectedProduct.name}
                   className="w-full h-64 object-cover rounded-xl mb-4 transition-all duration-300"
                 />
-                <h4 className="text-xl font-bold text-amber-900 mb-2">{selectedProduct.name}</h4>
-                <p className="text-amber-700 text-sm mb-2">{selectedProduct.description}</p>
-                <p className="text-2xl font-bold text-amber-600">{selectedProduct.price}</p>
+                <h4 className="text-xl font-bold text-orange-900 mb-2">{selectedProduct.name}</h4>
+                <p className="text-orange-700 text-sm mb-2">{selectedProduct.description}</p>
+                <p className="text-2xl font-bold text-orange-800">{selectedProduct.price}</p>
               </div>
 
               <div className="mb-6">
-                <p className="text-sm font-semibold text-amber-800 mb-3">Pilih Warna:</p>
+                <p className="text-sm font-semibold text-orange-800 mb-3">Pilih Warna:</p>
                 <div className="grid grid-cols-5 gap-3">
                   {selectedProduct.colors.map((color, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedColor(color)}
+                      // Warna ring diubah ke coklat gelap
                       className={`relative aspect-square rounded-lg transition-all duration-200 ${
                         selectedColor?.name === color.name 
-                          ? 'ring-4 ring-amber-500 scale-110' 
-                          : 'hover:scale-105 ring-2 ring-amber-200'
+                          ? 'ring-4 ring-orange-800 scale-110' 
+                          : 'hover:scale-105 ring-2 ring-orange-200'
                       }`}
-                      style={{ backgroundColor: color.hex }}
+
+                      // belum ada warna untuk dibagian pemilihan warna produk
+                      // style={{ backgroundColor: color.hex }}
                       title={color.name}
                     >
                       {selectedColor?.name === color.name && (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div className="w-4 h-4 bg-white rounded-full flex items-center justify-center">
-                            <div className="w-2 h-2 bg-amber-600 rounded-full"></div>
+                            {/* Dot diubah menjadi coklat gelap */}
+                            <div className="w-2 h-2 bg-orange-800 rounded-full"></div>
                           </div>
                         </div>
                       )}
@@ -456,8 +482,8 @@ const HijabCatalog = () => {
                   ))}
                 </div>
                 {selectedColor && (
-                  <p className="text-center mt-3 text-sm font-medium text-amber-800">
-                    Warna terpilih: <span className="text-amber-600">{selectedColor.name}</span>
+                  <p className="text-center mt-3 text-sm font-medium text-orange-800">
+                    Warna terpilih: <span className="text-orange-900">{selectedColor.name}</span>
                   </p>
                 )}
               </div>
@@ -468,8 +494,8 @@ const HijabCatalog = () => {
                 rel="noopener noreferrer"
                 className={`block w-full text-center py-3 rounded-xl font-medium transition-all duration-300 ${
                   selectedColor
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-md hover:shadow-lg'
-                    : 'bg-amber-200 text-amber-500 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-amber-700 to-amber-800 text-white hover:from-amber-600 hover:to-amber-700 shadow-md hover:shadow-lg'
+                    : 'bg-amber-600 text-white cursor-not-allowed'
                 }`}
                 onClick={(e) => {
                   if (!selectedColor) {
@@ -488,7 +514,7 @@ const HijabCatalog = () => {
       {!showChatbot && (
         <button
           onClick={() => setShowChatbot(true)}
-          className="fixed bottom-6 right-6 bg-gradient-to-r from-amber-500 to-amber-600 text-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 z-50"
+          className="fixed bottom-6 right-6 bg-gradient-to-r from-amber-600 to-amber-700 text-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 z-50"
         >
           <MessageCircle className="w-6 h-6" />
         </button>
@@ -496,9 +522,9 @@ const HijabCatalog = () => {
 
       {/* Chatbot Window */}
       {showChatbot && (
-        <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-amber-100">
+        <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-amber-800">
           {/* Chat Header */}
-          <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
+          <div className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-4 rounded-t-2xl flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <MessageCircle className="w-6 h-6" />
               <div>
@@ -525,7 +551,7 @@ const HijabCatalog = () => {
                   className={`max-w-[80%] p-3 rounded-2xl ${
                     msg.type === 'user'
                       ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-br-none'
-                      : 'bg-amber-100 text-amber-800 rounded-bl-none'
+                      : 'bg-amber-600 text-amber-100 rounded-bl-none'
                   }`}
                 >
                   <p className="text-sm">{msg.message}</p>
@@ -535,7 +561,7 @@ const HijabCatalog = () => {
           </div>
 
           {/* Chat Input */}
-          <div className="p-4 border-t border-amber-200">
+          <div className="p-4 border-t border-amber-800">
             <div className="flex space-x-2">
               <input
                 type="text"
@@ -543,11 +569,11 @@ const HijabCatalog = () => {
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Ketik pertanyaan Anda..."
-                className="flex-1 px-4 py-2 border border-amber-200 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent text-amber-900 placeholder-amber-400"
+                className="flex-1 px-4 py-2 border border-amber-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-700 focus:border-transparent text-amber-900 placeholder-amber-700"
               />
               <button
                 onClick={handleSendMessage}
-                className="bg-gradient-to-r from-amber-500 to-amber-600 text-white p-2 rounded-full hover:from-amber-600 hover:to-amber-700 transition-colors"
+                className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-2 rounded-full hover:from-amber-600 hover:to-amber-700 transition-colors"
               >
                 <Send className="w-5 h-5" />
               </button>
