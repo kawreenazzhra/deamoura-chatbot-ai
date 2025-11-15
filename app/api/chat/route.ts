@@ -1,3 +1,4 @@
+// app/api/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { DeAmouraChatbot } from '@/lib/gemini-service';
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     console.error('Chat API Error:', error);
     return NextResponse.json(
       { 
-        response: "Haii! Maaf ya, lagi gangguan nih. Yuk langsung lihat katalog produk kita atau coba lagi ya! 💫",
+        response: "Maaf, sedang ada gangguan. Silakan coba lagi atau lihat katalog kami.",
         products: [],
         categories: [],
         hasProducts: false
