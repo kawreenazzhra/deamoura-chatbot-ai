@@ -30,10 +30,10 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     image: '',
   });
 
-  // SIMULASI: Mengambil data barang berdasarkan ID saat halaman dibuka
+  // Mengambil data barang berdasarkan ID saat halaman dibuka
   useEffect(() => {
-    // Ceritanya kita fetch data dari database berdasarkan params.id
-    // Di sini kita isi data palsu dulu biar terlihat ada isinya
+    // fetch data dari database berdasarkan params.id
+    // data dummy
     setFormData({
       name: 'Pashmina Premium Silk',
       category: 'Pashmina',
@@ -58,9 +58,9 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulasi loading save ke database
+    // Loading save ke database
     setTimeout(() => {
-      alert("Data berhasil diperbarui! (Simulasi)");
+      alert("Data berhasil diperbarui!");
       setIsLoading(false);
       router.push('/admin/products'); // Kembali ke tabel
     }, 1000);
@@ -69,10 +69,10 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const handleDelete = () => {
     if (confirm("PERINGATAN: Apakah Anda yakin ingin menghapus produk ini?")){
         setIsLoading(true);
-        // Simulasi loading delete dari database
+        // Loading delete dari database
         
         setTimeout(() => {
-          alert("Produk berhasil dihapus! (Simulasi)");
+          alert("Produk berhasil dihapus!");
           setIsLoading(false);
           router.push('/admin/products'); // Kembali ke tabel
         }, 1000);

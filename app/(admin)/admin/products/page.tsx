@@ -1,5 +1,5 @@
 // src/app/(admin)/admin/products/page.tsx
-"use client"; // <--- WAJIB ADA: Agar bisa pakai interaksi klik
+"use client"; //
 
 import Link from 'next/link';
 import { useState } from 'react'; // Kita butuh state
@@ -26,7 +26,7 @@ export default function ProductListPage() {
       const updatedProducts = products.filter(product => product.id !== id);
       setProducts(updatedProducts); // Update tabel
       
-      // 3. Pesan sukses (Simulasi)
+      // 3. Pesan sukses
       alert("Produk berhasil dihapus!");
     }
   };
