@@ -1,12 +1,45 @@
 // src/app/(admin)/layout.tsx
-import Link from 'next/link';
-import { LayoutDashboard, Package, LogOut, ShoppingBag } from 'lucide-react';
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { LayoutDashboard, Package, LogOut, ShoppingBag } from 'lucide-react'
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter()
+  const [isAuth, setIsAuth] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Check if admin_token exists in cookies
+    const token = document.cookie.split('; ').find(c => c.startsWith('admin_token='))
+    if (!token) {
+      router.push('/admin/login')
+    } else {
+      setIsAuth(true)
+    }
+    setIsLoading(false)
+  }, [router])
+
+  const handleLogout = () => {
+    // Clear token and redirect
+    document.cookie = 'admin_token=; path=/; max-age=0'
+    router.push('/admin/login')
+  }
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  }
+
+  if (!isAuth) {
+    return null
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-100">
       
@@ -19,7 +52,7 @@ export default function AdminLayout({
           <h1 className="text-xl font-bold">Admin Panel</h1>
         </div>
 
-        <nav className="mt-6 px-4 space-y-2">
+        <nav className="mt-6 px-4 space-y-2 flex flex-col h-[calc(100vh-120px)]">
           <Link href="/admin" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
@@ -30,12 +63,15 @@ export default function AdminLayout({
             <span>Kelola Produk</span>
           </Link>
 
-          <Link href="/" target="_blank" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors mt-8">
+          <Link href="/" target="_blank" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors mt-auto">
             <ShoppingBag size={20} />
             <span>Lihat Website</span>
           </Link>
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors mt-auto">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
+          >
             <LogOut size={20} />
             <span>Logout</span>
           </button>
@@ -48,5 +84,7 @@ export default function AdminLayout({
       </main>
       
     </div>
+  )
+}
   );
 }
