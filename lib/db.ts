@@ -1,8 +1,17 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
-const prisma = globalThis.__prisma || new PrismaClient()
-if (!globalThis.__prisma) globalThis.__prisma = prisma
+let prisma: PrismaClient
+
+if (process.env.NODE_ENV === 'production') {
+  prisma = new PrismaClient()
+} else {
+  const globalForPrisma = global as unknown as { prisma: PrismaClient }
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = new PrismaClient()
+  }
+  prisma = globalForPrisma.prisma
+}
 
 export { prisma }
 

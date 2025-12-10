@@ -24,12 +24,12 @@ export class DeAmouraChatbot {
     const categories = await searchCategories(userMessage);
     
     const productContext = products.length > 0 ? 
-      `PRODUK TERKAIT YANG TERSEDIA:\n${products.map(p => 
+      `PRODUK TERKAIT YANG TERSEDIA:\n${products.map((p: any) => 
         `- ${p.name}: Rp ${p.price}, Stok: ${p.stock}, Material: ${p.materials?.join(', ')}, Warna: ${p.colors?.join(', ')}`
       ).join('\n')}\n\n` : '';
 
     const categoryContext = categories.length > 0 ?
-      `KATEGORI TERKAIT:\n${categories.map(c => 
+      `KATEGORI TERKAIT:\n${categories.map((c: any) => 
         `- ${c.name}: ${c.description}`
       ).join('\n')}\n\n` : '';
 
