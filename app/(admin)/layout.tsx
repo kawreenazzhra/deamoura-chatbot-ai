@@ -19,7 +19,7 @@ export default function AdminLayout({
     // Check if admin_token exists in cookies
     const token = document.cookie.split('; ').find(c => c.startsWith('admin_token='))
     if (!token) {
-      router.push('/admin/login')
+      router.push('/admin-login')
     } else {
       setIsAuth(true)
     }
@@ -29,7 +29,7 @@ export default function AdminLayout({
   const handleLogout = () => {
     // Clear token and redirect
     document.cookie = 'admin_token=; path=/; max-age=0'
-    router.push('/admin/login')
+    router.push('/admin-login')
   }
 
   if (isLoading) {
@@ -85,6 +85,4 @@ export default function AdminLayout({
       
     </div>
   )
-}
-  );
 }
