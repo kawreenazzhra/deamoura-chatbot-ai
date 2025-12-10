@@ -1,8 +1,6 @@
+// lib/gemini-service.ts
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { 
-  searchProductsForChatbot, 
-  searchCategoriesForChatbot 
-} from './db';
+import { searchProducts, searchCategories } from './db';
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
 
@@ -22,32 +20,17 @@ export class DeAmouraChatbot {
   }
 
   async generateResponse(userMessage: string) {
-    const products = await searchProductsForChatbot(userMessage);
-    const categories = await searchCategoriesForChatbot(userMessage);
+    const products = await searchProducts(userMessage);
+    const categories = await searchCategories(userMessage);
     
-    // Format materials dan colors jika ada
-    const formatArray = (arr: any) => {
-      if (!arr) return '-';
-      if (Array.isArray(arr)) return arr.join(', ');
-      if (typeof arr === 'string') {
-        try {
-          const parsed = JSON.parse(arr);
-          return Array.isArray(parsed) ? parsed.join(', ') : parsed;
-        } catch {
-          return arr;
-        }
-      }
-      return String(arr);
-    };
-
     const productContext = products.length > 0 ? 
       `PRODUK TERKAIT YANG TERSEDIA:\n${products.map((p: any) => 
-        `- ${p.name}: Rp ${p.price.toLocaleString()}, Stok: ${p.stock}, Material: ${formatArray(p.materials)}, Warna: ${formatArray(p.colors)}`
+        `- ${p.name}: Rp ${p.price}, Stok: ${p.stock}, Material: ${p.materials?.join(', ')}, Warna: ${p.colors?.join(', ')}`
       ).join('\n')}\n\n` : '';
 
     const categoryContext = categories.length > 0 ?
       `KATEGORI TERKAIT:\n${categories.map((c: any) => 
-        `- ${c.name}: ${c.description || 'Tidak ada deskripsi'}`
+        `- ${c.name}: ${c.description}`
       ).join('\n')}\n\n` : '';
 
     const prompt = `
