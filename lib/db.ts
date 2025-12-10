@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs'
 const prisma = globalThis.__prisma || new PrismaClient()
 if (!globalThis.__prisma) globalThis.__prisma = prisma
 
+export { prisma }
+
 export async function getProducts() {
   return prisma.product.findMany({
     where: { isActive: true },
@@ -66,6 +68,23 @@ export async function getFAQ(query: string) {
     },
     take: 2
   })
+}
+
+// Product CRUD helpers (for admin)
+export async function createProduct(data: any) {
+  return prisma.product.create({ data })
+}
+
+export async function getProductById(id: number) {
+  return prisma.product.findUnique({ where: { id } })
+}
+
+export async function updateProduct(id: number, data: any) {
+  return prisma.product.update({ where: { id }, data })
+}
+
+export async function deleteProduct(id: number) {
+  return prisma.product.delete({ where: { id } })
 }
 
 // Admin helpers

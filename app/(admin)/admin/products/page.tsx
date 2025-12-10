@@ -1,35 +1,63 @@
 // src/app/(admin)/admin/products/page.tsx
-"use client"; //
+"use client";
 
-import Link from 'next/link';
-import { useState } from 'react'; // Kita butuh state
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { Plus, Pencil, Trash2, Search } from 'lucide-react'
 
-// Data dummy dipindah ke variabel luar
-const initialProducts = [
-  { id: 1, name: 'Pashmina Premium Silk', category: 'Pashmina', price: 'Rp 89.000', stock: 15 },
-  { id: 2, name: 'Segi Empat Voal', category: 'Segi Empat', price: 'Rp 65.000', stock: 24 },
-  { id: 3, name: 'Bergo Instan Daily', category: 'Bergo', price: 'Rp 55.000', stock: 10 },
-  { id: 4, name: 'Khimar Syari', category: 'Khimar', price: 'Rp 125.000', stock: 5 },
-];
+interface Product {
+  id: number
+  name: string
+  slug: string
+  price: number
+  stock: number
+  category?: { name: string }
+}
 
 export default function ProductListPage() {
-  // Gunakan state agar saat dihapus, tampilan tabel otomatis berubah
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // --- FUNGSI HAPUS ---
-  const handleDelete = (id: number) => {
-    // 1. Munculkan konfirmasi (Yakin/Tidak?)
-    if (confirm("Apakah Anda yakin ingin menghapus produk ini?")) {
-      
-      // 2. Filter produk: Ambil semua produk KECUALI yang id-nya dihapus
-      const updatedProducts = products.filter(product => product.id !== id);
-      setProducts(updatedProducts); // Update tabel
-      
-      // 3. Pesan sukses
-      alert("Produk berhasil dihapus!");
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/admin/products')
+      if (res.ok) {
+        const data = await res.json()
+        setProducts(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch products:', err)
+    } finally {
+      setLoading(false)
     }
-  };
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus produk ini?')) return
+
+    try {
+      const res = await fetch(`/api/admin/products?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        alert('Produk berhasil dihapus!')
+        setProducts(products.filter(p => p.id !== id))
+      } else {
+        alert('Gagal menghapus produk')
+      }
+    } catch (err) {
+      console.error('Delete error:', err)
+      alert('Terjadi error saat menghapus')
+    }
+  }
+
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
     <div>
@@ -51,62 +79,56 @@ export default function ProductListPage() {
 
       {/* Tabel Produk */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Search Bar Kecil */}
+        {/* Search Bar */}
         <div className="p-4 border-b border-gray-100">
-            <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"/>
-                <input 
-                    type="text" 
-                    placeholder="Cari nama produk..." 
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-            </div>
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input 
+              type="text" 
+              placeholder="Cari nama produk..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
         </div>
 
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
             <tr>
               <th className="px-6 py-4">Nama Produk</th>
-              <th className="px-6 py-4">Kategori</th>
               <th className="px-6 py-4">Harga</th>
               <th className="px-6 py-4">Stok</th>
               <th className="px-6 py-4 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {products.length === 0 ? (
-                <tr>
-                    <td colSpan={5} className="text-center py-8 text-gray-400">Tidak ada produk.</td>
-                </tr>
-            ) : products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 font-medium text-slate-800">{product.name}</td>
-                <td className="px-6 py-4 text-slate-500">
-                    <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs">
-                        {product.category}
-                    </span>
-                </td>
-                <td className="px-6 py-4 text-slate-600">{product.price}</td>
-                <td className="px-6 py-4 text-slate-600">{product.stock} pcs</td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    {/* Tombol Edit */}
-                    <Link href={`/admin/products/${product.id}`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
-                      <Pencil size={16} />
-                    </Link>
-                    
-                    {/* Tombol Hapus (Sekarang berfungsi!) */}
-                    <button 
+            {loading ? (
+              <tr><td colSpan={4} className="text-center py-8 text-gray-400">Loading...</td></tr>
+            ) : filteredProducts.length === 0 ? (
+              <tr><td colSpan={4} className="text-center py-8 text-gray-400">Tidak ada produk.</td></tr>
+            ) : (
+              filteredProducts.map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-slate-800">{product.name}</td>
+                  <td className="px-6 py-4 text-slate-600">Rp {product.price.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-slate-600">{product.stock} pcs</td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link href={`/admin/products/${product.id}`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <Pencil size={16} />
+                      </Link>
+                      <button 
                         onClick={() => handleDelete(product.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
-                        title="Hapus"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
