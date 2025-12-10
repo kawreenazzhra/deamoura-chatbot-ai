@@ -1,6 +1,6 @@
 // lib/gemini-service.ts
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { searchProducts, searchCategories } from './supabase';
+import { searchProducts, searchCategories } from './db';
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
 
