@@ -42,9 +42,12 @@ export default function AddProductPage() {
   const handleMainImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 2 * 1024 * 1024) return alert("Maksimal 2MB")
-      const base64 = await convertToBase64(file)
-      setMainImage(base64)
+      try {
+        const base64 = await convertToBase64(file)
+        setMainImage(base64)
+      } catch (err) {
+        alert("Error converting image: " + String(err))
+      }
     }
   }
 
@@ -58,13 +61,17 @@ export default function AddProductPage() {
     const fileArray = Array.from(files)
 
     const promises = fileArray.map(async (file) => {
-      if (file.size > 2 * 1024 * 1024) return null
-      const base64 = await convertToBase64(file)
-      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/-/g, " ")
-      return {
-        id: Math.random().toString(36).substr(2, 9),
-        name: cleanName,
-        image: base64
+      try {
+        const base64 = await convertToBase64(file)
+        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/-/g, " ")
+        return {
+          id: Math.random().toString(36).substr(2, 9),
+          name: cleanName,
+          image: base64
+        }
+      } catch (err) {
+        console.error("Error converting file:", file.name, err)
+        return null
       }
     })
 
@@ -112,7 +119,8 @@ export default function AddProductPage() {
           categoryId: null,
           materials: variants.map(v => v.name),
           colors: colors,
-          imageUrl: mainImage,
+          imageBase64: mainImage,
+          variants: variants, // Send full variant objects with images
           marketplaceUrl: formData.marketplaceUrl,
           isActive: true,
           isFeatured: false

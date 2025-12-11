@@ -44,8 +44,8 @@ export async function searchProducts(query: string) {
     where: {
       isActive: true,
       OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } }
+        { name: { contains: query } },
+        { description: { contains: query } }
       ]
     },
     take: 3
@@ -57,8 +57,8 @@ export async function searchCategories(query: string) {
   return prisma.category.findMany({
     where: {
       OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } }
+        { name: { contains: query } },
+        { description: { contains: query } }
       ]
     },
     take: 2
@@ -71,8 +71,8 @@ export async function getFAQ(query: string) {
     where: {
       isActive: true,
       OR: [
-        { question: { contains: query, mode: 'insensitive' } },
-        { answer: { contains: query, mode: 'insensitive' } }
+        { question: { contains: query } },
+        { answer: { contains: query } }
       ]
     },
     take: 2

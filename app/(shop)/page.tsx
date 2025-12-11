@@ -103,15 +103,15 @@ export default function ShopPage() {
   const handleOpenProduct = (product: Product) => {
     setSelectedProduct(product);
     setSelectedColor(null);
-    // Update URL without page reload
-    router.push(`/shop?product=${product.slug}`, { scroll: false });
+    // Update URL without page reload (use / instead of /shop)
+    router.push(`/?product=${product.slug}`, { scroll: false });
   };
 
   const handleCloseProduct = () => {
     setSelectedProduct(null);
     setSelectedColor(null);
     // Remove product from URL
-    router.push('/shop', { scroll: false });
+    router.push('/', { scroll: false });
   };
 
   const handleSendMessage = () => {
@@ -435,18 +435,34 @@ export default function ShopPage() {
     </div>
   );
 
+  // Helper function to safely parse JSON
+  const safeJsonParse = (data: any): any[] => {
+    if (!data) return [];
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        console.warn('Failed to parse JSON:', e);
+        return [];
+      }
+    }
+    // Already parsed (object or array)
+    return Array.isArray(data) ? data : [];
+  };
+
   // Product Detail Modal
   const ProductDetailModal = () => {
     if (!selectedProduct) return null;
 
-    const colors = selectedProduct.colors ? JSON.parse(selectedProduct.colors as any) : [];
-    const materials = selectedProduct.materials ? JSON.parse(selectedProduct.materials as any) : [];
+    const colors = safeJsonParse(selectedProduct.colors);
+    const materials = safeJsonParse(selectedProduct.materials);
+    const variants = safeJsonParse((selectedProduct as any).variants);
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-orange-800">
+        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-orange-800 flex flex-col">
           {/* Modal Header */}
-          <div className="sticky top-0 bg-orange-800 text-white p-4 rounded-t-2xl flex items-center justify-between">
+          <div className="bg-orange-800 text-white p-4 rounded-t-2xl flex items-center justify-between flex-shrink-0">
             <button
               onClick={handleCloseProduct}
               className="flex items-center hover:bg-orange-700 p-2 rounded-lg transition-colors"
@@ -470,11 +486,11 @@ export default function ShopPage() {
             </div>
           </div>
           
-          <div className="p-6">
-            <div className="md:flex gap-8">
+          <div className="p-6 overflow-y-auto flex-1">
+            <div className="md:grid md:grid-cols-2 gap-8 items-start">
               {/* Product Images */}
-              <div className="md:w-1/2">
-                <div className="relative h-96 rounded-xl overflow-hidden mb-4">
+              <div className="mb-6 md:mb-0 md:max-w-sm">
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4 bg-gray-100 flex items-center justify-center">
                   {selectedProduct.imageUrl ? (
                     <Image
                       src={selectedProduct.imageUrl}
@@ -483,37 +499,13 @@ export default function ShopPage() {
                       className="object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <ShoppingBag className="w-24 h-24 text-gray-400" />
-                    </div>
+                    <ShoppingBag className="w-24 h-24 text-gray-400" />
                   )}
                 </div>
-                
-                {/* Color Thumbnails */}
-                {colors.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {colors.slice(0, 4).map((color: string, index: number) => (
-                      <div 
-                        key={index} 
-                        className={`aspect-square rounded-lg overflow-hidden border-2 cursor-pointer ${
-                          selectedColor === color 
-                            ? 'border-orange-600' 
-                            : 'border-orange-200 hover:border-orange-400'
-                        }`}
-                        onClick={() => setSelectedColor(color)}
-                      >
-                        <div 
-                          className="w-full h-full"
-                          style={{ backgroundColor: color.toLowerCase() }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
               
               {/* Product Info */}
-              <div className="md:w-1/2 mt-6 md:mt-0">
+              <div>
                 <div className="mb-4">
                   {selectedProduct.category && (
                     <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -523,16 +515,6 @@ export default function ShopPage() {
                 </div>
                 
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">{selectedProduct.name}</h1>
-                
-                {/* Rating */}
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-current" />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-600">(4.8) • 124 reviews</span>
-                </div>
                 
                 {/* Price */}
                 <div className="mb-6">
@@ -544,29 +526,62 @@ export default function ShopPage() {
                   </p>
                 </div>
                 
-                {/* Color Selection */}
+                {/* Color/Variant Selection */}
                 {colors.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Warna Tersedia</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {colors.map((color: string, index: number) => (
-                        <button
-                          key={index}
-                          onClick={() => setSelectedColor(color)}
-                          className={`flex items-center px-3 py-2 rounded-lg border ${
-                            selectedColor === color
-                              ? 'border-orange-600 bg-orange-50'
-                              : 'border-gray-300 hover:border-gray-400'
-                          }`}
-                        >
-                          <div 
-                            className="w-6 h-6 rounded-full mr-2 border border-gray-300"
-                            style={{ backgroundColor: color.toLowerCase() }}
-                          />
-                          <span className="text-sm">{color}</span>
-                        </button>
-                      ))}
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Warna Tersedia</h3>
+                    <div className="flex flex-wrap gap-3">
+                      {colors.map((color: string, index: number) => {
+                        const variant = variants.find((v: any) => v.name === color);
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => setSelectedColor(color)}
+                            className={`flex items-center px-4 py-2 rounded-lg border-2 transition-all ${
+                              selectedColor === color
+                                ? 'border-orange-600 bg-orange-50 shadow-md'
+                                : 'border-gray-300 hover:border-orange-400'
+                            }`}
+                            title={color}
+                          >
+                            {variant && variant.image ? (
+                              <div className="relative w-6 h-6 rounded-full mr-3 border border-gray-300 overflow-hidden bg-gray-50">
+                                <Image
+                                  src={variant.image}
+                                  alt={color}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div 
+                                className="w-5 h-5 rounded-full mr-3 border border-gray-400 shadow-sm"
+                                style={{ backgroundColor: color.toLowerCase() }}
+                              />
+                            )}
+                            <span className="text-sm font-medium">{color}</span>
+                          </button>
+                        );
+                      })}
                     </div>
+                    
+                    {/* Show selected variant image */}
+                    {selectedColor && variants.length > 0 && (() => {
+                      const selectedVariant = variants.find((v: any) => v.name === selectedColor);
+                      return selectedVariant && selectedVariant.image ? (
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="text-sm text-gray-600 mb-2 font-medium">Detail Warna: {selectedColor}</p>
+                          <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-white border border-gray-300">
+                            <Image
+                              src={selectedVariant.image}
+                              alt={selectedColor}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 )}
                 
@@ -616,10 +631,6 @@ export default function ShopPage() {
                   >
                     Beli di Tokopedia
                   </a>
-                  
-                  <button className="w-full bg-white border-2 border-orange-600 text-orange-600 py-3.5 rounded-xl hover:bg-orange-50 transition-colors font-medium">
-                    Tambah ke Keranjang
-                  </button>
                 </div>
               </div>
             </div>
