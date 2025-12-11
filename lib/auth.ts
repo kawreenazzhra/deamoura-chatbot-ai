@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { NextRequest } from "next/server";
+import bcrypt from "bcryptjs";
 
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET as string;
 const COOKIE_NAME = "admin_token";
@@ -38,9 +39,16 @@ export function getAdminTokenFromCookie(cookieHeader: string | null) {
   return cookies[COOKIE_NAME] ?? null;
 }
 
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
 export function setAdminCookie(token: string) {
-  const cookie = `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${60 * 60 * 24 * 7}`;
-  return cookie;
+  return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Max-Age=604800; SameSite=Lax`;
 }
 
 export async function verifyAdmin(request: NextRequest) {

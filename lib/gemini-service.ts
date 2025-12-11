@@ -1,75 +1,85 @@
 // lib/gemini-service.ts
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { searchProducts, searchCategories } from './db';
-
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
-
 export class DeAmouraChatbot {
-  private model;
-  
-  constructor() {
-    this.model = genAI.getGenerativeModel({ 
-      model: 'gemini-pro',
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1024,
-      }
-    });
-  }
+  private templates: { [key: string]: string[] } = {
+    greeting: [
+      "Haii! 👋 Aku asisten de.amoura. Ada yang bisa aku bantu? 💕",
+      "Halo say! 😊 Selamat datang di de.amoura. Mau cari hijab yang bagus? ✨",
+      "Haii! Welcome to de.amoura 💕 Ada yang bisa aku bantu kamu?"
+    ],
+    color_question: [
+      "Untuk kombinasi warna {color} itu mantap pakai hijab warna-warna natural atau neutral! Coba lihat koleksi Pashmina atau Segi Empat kami yang cocok banget 💕",
+      "Warna {color} itu bagus! Kami punya banyak pilihan hijab yang bisa match. Cek koleksi kami yuk! ✨",
+      "Untuk outfit warna {color}, hijab warna cerah atau pastel bisa jadi pilihan. Lihat katalog lengkapnya di sini! 🤗"
+    ],
+    material_question: [
+      "Material favorit kami ada Pashmina, Jersey, dan Voal yang nyaman banget! Mau lihat koleksinya? 💕",
+      "Kami punya berbagai material pilihan - dari Pashmina premium hingga Jersey casual. Cek katalog yuk! ✨"
+    ],
+    style_question: [
+      "Untuk gaya kasual, Jersey atau Voal cocok! Untuk formal, Pashmina atau Segi Empat elegant. Mau lihat koleksi lengkapnya? 💕",
+      "Tergantung gaya kamu! Kami punya semua style dari casual hingga formal. Mari explore katalog kami! ✨"
+    ],
+    default: [
+      "Mantap! Aku bantu kamu cari hijab yang pas. Ada pertanyaan lebih spesifik? 💕",
+      "Oke! Coba lihat katalog lengkap kami atau tanya lebih detail yuk! ✨",
+      "Sip! Semua produk kami punya kualitas terbaik. Mau tahu lebih banyak? 💕"
+    ]
+  };
 
-  async generateResponse(userMessage: string) {
-    const products = await searchProducts(userMessage);
-    const categories = await searchCategories(userMessage);
+  async generateResponse(userMessage: string): Promise<{
+    text: string;
+    products: any[];
+    categories: any[];
+    hasProducts: boolean;
+  }> {
+    console.log('\n🤖 generateResponse START - message:', userMessage.substring(0, 30));
     
-    const productContext = products.length > 0 ? 
-      `PRODUK TERKAIT YANG TERSEDIA:\n${products.map((p: any) => 
-        `- ${p.name}: Rp ${p.price}, Stok: ${p.stock}, Material: ${p.materials?.join(', ')}, Warna: ${p.colors?.join(', ')}`
-      ).join('\n')}\n\n` : '';
-
-    const categoryContext = categories.length > 0 ?
-      `KATEGORI TERKAIT:\n${categories.map((c: any) => 
-        `- ${c.name}: ${c.description}`
-      ).join('\n')}\n\n` : '';
-
-    const prompt = `
-      Anda adalah customer service De.Amoura hijab fashion. 
-      TARGET: Remaja & dewasa muda (15-35 tahun)
-      STYLE: Ramah, casual, pakai emoji, bahasa gaul tapi sopan
-      
-      ${productContext}
-      ${categoryContext}
-      
-      INSTRUKSI:
-      1. Balas dengan friendly "Haii!" atau "Halo say!" 
-      2. Jika ada produk terkait, sebutkan dan berikan detail lengkap
-      3. Dorong untuk melihat katalog di website ini
-      4. Gunakan emoji 💕✨🤗
-      5. JANGAN buat-buat informasi produk
-      6. Jika tidak ada produk terkait, tawarkan bantuan lain
-      
-      PERTANYAAN: "${userMessage}"
-      
-      BALASAN:`;
-
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
+      const lowerMessage = userMessage.toLowerCase();
+      let responseText = '';
+
+      // Determine intent and generate response
+      if (lowerMessage.match(/^(halo|hi|hello|haii|assalamualaikum|pagi|siang|sore|malam)/i)) {
+        responseText = this.randomTemplate('greeting');
+      } else if (lowerMessage.match(/warna|color/i)) {
+        const colorMatch = userMessage.match(/warna\s+(\w+)|color\s+(\w+)/i);
+        const color = colorMatch ? (colorMatch[1] || colorMatch[2]) : '';
+        if (color) {
+          responseText = this.randomTemplate('color_question').replace('{color}', color);
+        } else {
+          responseText = this.randomTemplate('default');
+        }
+      } else if (lowerMessage.match(/material|kain|bahan/i)) {
+        responseText = this.randomTemplate('material_question');
+      } else if (lowerMessage.match(/gaya|style|kasual|formal|casual/i)) {
+        responseText = this.randomTemplate('style_question');
+      } else {
+        responseText = this.randomTemplate('default');
+      }
+
+      responseText += `\n\nCek katalog lengkap kami atau tanya lagi ya! 💕`;
+
+      console.log('✅ Response generated:', responseText.substring(0, 50) + '...');
+
       return {
-        text: response.text(),
-        products: products.slice(0, 3),
-        categories: categories.slice(0, 2),
-        hasProducts: products.length > 0
+        text: responseText,
+        products: [],
+        categories: [],
+        hasProducts: false
       };
-    } catch (error) {
-      console.error('Gemini API Error:', error);
+    } catch (error: any) {
+      console.error('❌ Error:', error?.message);
       return {
-        text: "Haii! Maaf ya, aku lagi gangguan nih. Yuk langsung lihat katalog produk kita atau chat lagi ya! 💕",
+        text: "Haii! 👋 Ada gangguan ni. Coba lagi ya! 💕",
         products: [],
         categories: [],
         hasProducts: false
       };
     }
+  }
+
+  private randomTemplate(key: string): string {
+    const templates = this.templates[key] || this.templates.default;
+    return templates[Math.floor(Math.random() * templates.length)];
   }
 }

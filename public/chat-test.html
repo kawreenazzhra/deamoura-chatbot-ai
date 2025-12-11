@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>De.Amoura Chat Test</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 50px auto; }
+        input { width: 80%; padding: 8px; }
+        button { padding: 8px 20px; }
+        #response { border: 1px solid #ccc; padding: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Test Chat API</h1>
+    <input type="text" id="message" placeholder="Ketik pesan..." value="hai, hijab untuk warna merah apa">
+    <button onclick="testChat()">Send</button>
+    <div id="response"></div>
+    <pre id="log"></pre>
+
+    <script>
+        function log(msg) {
+            console.log(msg);
+            document.getElementById('log').textContent += msg + '\n';
+        }
+
+        async function testChat() {
+            const message = document.getElementById('message').value;
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = 'Loading...';
+            
+            log('Sending message: ' + message);
+            
+            try {
+                log('Calling fetch...');
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                log('Response status: ' + response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('Error response: ' + errorText);
+                    responseDiv.textContent = 'Error: ' + response.status;
+                    return;
+                }
+                
+                const data = await response.json();
+                log('Response data: ' + JSON.stringify(data));
+                responseDiv.textContent = data.text || 'No text in response';
+            } catch (error) {
+                log('Error: ' + error.message);
+                responseDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 // app/shop/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   ShoppingBag, Search, X, ArrowLeft, Heart, 
@@ -29,6 +29,7 @@ interface Product {
 interface ChatMessage {
   type: 'user' | 'bot';
   message: string;
+  timestamp?: number;
 }
 
 export default function ShopPage() {
@@ -43,11 +44,14 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [showChatbot, setShowChatbot] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { type: 'bot', message: 'Halo! Ada yang bisa saya bantu tentang produk hijab de.amoura?' }
+    { type: 'bot', message: 'Haii! 👋 Ada yang bisa aku bantu tentang hijab de.amoura? Tanya-tanya yuk! ✨' }
   ]);
   const [inputMessage, setInputMessage] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  
+  const chatMessagesRef = useRef<HTMLDivElement>(null);
 
   // Categories
   const categories = [
@@ -73,6 +77,19 @@ export default function ShopPage() {
       }
     }
   }, [productSlug, products]);
+
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatMessagesRef.current) {
+      // Use setTimeout to ensure DOM has updated
+      const scrollTimer = setTimeout(() => {
+        if (chatMessagesRef.current) {
+          chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+        }
+      }, 0);
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [chatMessages]);
 
   const fetchProducts = async () => {
     try {
@@ -114,13 +131,52 @@ export default function ShopPage() {
     router.push('/', { scroll: false });
   };
 
-  const handleSendMessage = () => {
-    if (inputMessage.trim()) {
-      setChatMessages([...chatMessages, 
-        { type: 'user', message: inputMessage },
-        { type: 'bot', message: 'Terima kasih atas pertanyaan Anda! Tim kami akan segera membantu Anda. Untuk informasi lebih detail, silakan kunjungi toko kami di Tokopedia.' }
-      ]);
-      setInputMessage('');
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isChatLoading) return;
+
+    const userMessage = inputMessage.trim();
+    setInputMessage('');
+    
+    // Add user message to chat
+    setChatMessages(prev => [...prev, { type: 'user', message: userMessage, timestamp: Date.now() }]);
+    setIsChatLoading(true);
+
+    try {
+      console.log('Sending message to /api/chat:', userMessage);
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage })
+      });
+
+      console.log('Chat response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Chat request failed:', response.status, errorText);
+        throw new Error(`Chat request failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Chat response data:', data);
+      
+      // Add bot response to chat
+      if (data.text) {
+        console.log('Adding bot message to chat:', data.text);
+        setChatMessages(prev => {
+          const updated = [...prev, { type: 'bot', message: data.text, timestamp: Date.now() }];
+          console.log('Chat messages updated, total:', updated.length);
+          return updated;
+        });
+      } else {
+        console.warn('No text in response:', data);
+        setChatMessages(prev => [...prev, { type: 'bot', message: 'Maaf ada gangguan nih. Coba lagi ya! 💕', timestamp: Date.now() }]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setChatMessages(prev => [...prev, { type: 'bot', message: 'Maaf ada gangguan nih. Coba lagi ya! 💕', timestamp: Date.now() }]);
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -672,23 +728,39 @@ export default function ShopPage() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {chatMessages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+          <div ref={chatMessagesRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-amber-50">
+            {chatMessages && chatMessages.length > 0 ? (
+              chatMessages.map((msg, index) => (
                 <div
-                  className={`max-w-[80%] p-3 rounded-2xl ${
-                    msg.type === 'user'
-                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-br-none'
-                      : 'bg-amber-600 text-amber-100 rounded-bl-none'
-                  }`}
+                  key={msg.timestamp || index}
+                  data-message-type={msg.type}
+                  className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-sm">{msg.message}</p>
+                  <div
+                    className={`max-w-[80%] p-3 rounded-2xl text-sm break-words ${
+                      msg.type === 'user'
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-br-none'
+                        : 'bg-amber-100 text-amber-900 rounded-bl-none'
+                    }`}
+                  >
+                    <p>{msg.message}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-amber-700 text-sm">Mulai percakapan...</div>
+            )}
+            {isChatLoading && (
+              <div className="flex justify-start">
+                <div className="bg-amber-100 text-amber-900 p-3 rounded-2xl rounded-bl-none">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 bg-amber-900 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-amber-900 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 bg-amber-900 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  </div>
                 </div>
               </div>
-            ))}
+            )}
           </div>
 
           <div className="p-4 border-t border-amber-800">
@@ -697,13 +769,15 @@ export default function ShopPage() {
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyPress={(e) => e.key === 'Enter' && !isChatLoading && handleSendMessage()}
                 placeholder="Ketik pertanyaan Anda..."
-                className="flex-1 px-4 py-2 border border-amber-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-700 focus:border-transparent text-amber-900 placeholder-amber-700"
+                disabled={isChatLoading}
+                className="flex-1 px-4 py-2 border border-amber-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-700 focus:border-transparent text-amber-900 placeholder-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleSendMessage}
-                className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-2 rounded-full hover:from-amber-600 hover:to-amber-700 transition-colors"
+                disabled={isChatLoading}
+                className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-2 rounded-full hover:from-amber-600 hover:to-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-5 h-5" />
               </button>
