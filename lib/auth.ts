@@ -2,7 +2,8 @@ import jwt from "jsonwebtoken";
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 
-const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET as string;
+// Use a consistent fallback secret if env vars are missing
+export const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'dev-secret';
 const COOKIE_NAME = "admin_token";
 
 type AdminPayload = {

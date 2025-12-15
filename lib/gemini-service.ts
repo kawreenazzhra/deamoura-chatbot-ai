@@ -1,85 +1,124 @@
 // lib/gemini-service.ts
+import prisma from "@/lib/prisma";
+import { Product } from "@prisma/client";
+
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const GEMINI_MODEL = "gemini-2.5-flash";
+
 export class DeAmouraChatbot {
-  private templates: { [key: string]: string[] } = {
-    greeting: [
-      "Haii! 👋 Aku asisten de.amoura. Ada yang bisa aku bantu? 💕",
-      "Halo say! 😊 Selamat datang di de.amoura. Mau cari hijab yang bagus? ✨",
-      "Haii! Welcome to de.amoura 💕 Ada yang bisa aku bantu kamu?"
-    ],
-    color_question: [
-      "Untuk kombinasi warna {color} itu mantap pakai hijab warna-warna natural atau neutral! Coba lihat koleksi Pashmina atau Segi Empat kami yang cocok banget 💕",
-      "Warna {color} itu bagus! Kami punya banyak pilihan hijab yang bisa match. Cek koleksi kami yuk! ✨",
-      "Untuk outfit warna {color}, hijab warna cerah atau pastel bisa jadi pilihan. Lihat katalog lengkapnya di sini! 🤗"
-    ],
-    material_question: [
-      "Material favorit kami ada Pashmina, Jersey, dan Voal yang nyaman banget! Mau lihat koleksinya? 💕",
-      "Kami punya berbagai material pilihan - dari Pashmina premium hingga Jersey casual. Cek katalog yuk! ✨"
-    ],
-    style_question: [
-      "Untuk gaya kasual, Jersey atau Voal cocok! Untuk formal, Pashmina atau Segi Empat elegant. Mau lihat koleksi lengkapnya? 💕",
-      "Tergantung gaya kamu! Kami punya semua style dari casual hingga formal. Mari explore katalog kami! ✨"
-    ],
-    default: [
-      "Mantap! Aku bantu kamu cari hijab yang pas. Ada pertanyaan lebih spesifik? 💕",
-      "Oke! Coba lihat katalog lengkap kami atau tanya lebih detail yuk! ✨",
-      "Sip! Semua produk kami punya kualitas terbaik. Mau tahu lebih banyak? 💕"
-    ]
-  };
 
   async generateResponse(userMessage: string): Promise<{
     text: string;
-    products: any[];
+    products: Product[];
     categories: any[];
     hasProducts: boolean;
   }> {
-    console.log('\n🤖 generateResponse START - message:', userMessage.substring(0, 30));
-    
-    try {
-      const lowerMessage = userMessage.toLowerCase();
-      let responseText = '';
+    console.log('\n🤖 generateResponse START (REST) - message:', userMessage.substring(0, 30));
+    console.log('🤖 Model Version:', GEMINI_MODEL);
 
-      // Determine intent and generate response
-      if (lowerMessage.match(/^(halo|hi|hello|haii|assalamualaikum|pagi|siang|sore|malam)/i)) {
-        responseText = this.randomTemplate('greeting');
-      } else if (lowerMessage.match(/warna|color/i)) {
-        const colorMatch = userMessage.match(/warna\s+(\w+)|color\s+(\w+)/i);
-        const color = colorMatch ? (colorMatch[1] || colorMatch[2]) : '';
-        if (color) {
-          responseText = this.randomTemplate('color_question').replace('{color}', color);
-        } else {
-          responseText = this.randomTemplate('default');
-        }
-      } else if (lowerMessage.match(/material|kain|bahan/i)) {
-        responseText = this.randomTemplate('material_question');
-      } else if (lowerMessage.match(/gaya|style|kasual|formal|casual/i)) {
-        responseText = this.randomTemplate('style_question');
-      } else {
-        responseText = this.randomTemplate('default');
+    try {
+      if (!API_KEY) {
+        throw new Error("Gemini API Key is missing");
       }
 
-      responseText += `\n\nCek katalog lengkap kami atau tanya lagi ya! 💕`;
+      // 1. Search for relevant products based on the message
+      const keywords = userMessage.split(" ").filter(w => w.length > 3);
+      let products: Product[] = [];
 
-      console.log('✅ Response generated:', responseText.substring(0, 50) + '...');
+      if (keywords.length > 0) {
+        products = await prisma.product.findMany({
+          where: {
+            OR: [
+              { name: { contains: userMessage } },
+              ...keywords.map(k => ({ name: { contains: k } })),
+              ...keywords.map(k => ({ description: { contains: k } }))
+            ],
+            isActive: true
+          },
+          take: 5,
+        });
+      }
+
+      // Fallback
+      if (products.length === 0) {
+        products = await prisma.product.findMany({
+          where: { isFeatured: true, isActive: true },
+          take: 3
+        });
+      }
+
+      // 2. Prepare Context
+      const productContext = products.map(p =>
+        `- ${p.name} (Harga: Rp${p.price}): ${p.description || "Tidak ada deskripsi"} [Warna: ${p.colors}, Material: ${p.materials}]`
+      ).join("\n");
+
+      const systemPrompt = `
+      Kamu adalah asisten AI untuk toko hijab "De Amoura".
+      Gunakan Bahasa Indonesia yang ramah, sopan, dan kekinian (ada emoji 💕, ✨).
+      
+      Konteks Produk yang Ditemukan:
+      ${productContext}
+
+      Tugasmu:
+      1. Jawab pertanyaan user berdasarkan produk di atas jika relevan.
+      2. Jika ada produk yang cocok, rekomendasikan dengan sebutkan nama.
+      3. Jika tidak ada, sebutkan produk best seller kami.
+      4. Jawab singkat dan persuasif.
+
+      Pesan User: "${userMessage}"
+      `;
+
+      // 3. Call Gemini REST API
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${API_KEY}`;
+
+      const payload = {
+        contents: [{
+          parts: [{ text: systemPrompt }]
+        }]
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          console.warn("⚠️ Gemini Quota Exceeded");
+          return {
+            text: "Maaf ya, kuota AI harian habis nih 🥺. Coba tanya lagi besok atau nanti ya! (429 Too Many Requests)",
+            products: products,
+            categories: [],
+            hasProducts: products.length > 0
+          };
+        }
+        const errData = await response.text();
+        throw new Error(`Gemini API Error: ${response.status} - ${errData}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, aku tidak bisa menjawab sekarang.";
+
+      console.log('✅ Response generated:', text.substring(0, 50) + '...');
 
       return {
-        text: responseText,
-        products: [],
+        text: text,
+        products: products,
         categories: [],
-        hasProducts: false
+        hasProducts: products.length > 0
       };
+
     } catch (error: any) {
       console.error('❌ Error:', error?.message);
       return {
-        text: "Haii! 👋 Ada gangguan ni. Coba lagi ya! 💕",
+        text: "Maaf ya, aku lagi gangguan nih. Coba tanya lagi nanti ya! 💕 (Server Error)",
         products: [],
         categories: [],
         hasProducts: false
       };
     }
-  }
-
-  private randomTemplate(key: string): string {
-    const templates = this.templates[key] || this.templates.default;
-    return templates[Math.floor(Math.random() * templates.length)];
   }
 }

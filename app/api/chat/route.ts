@@ -3,47 +3,46 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DeAmouraChatbot } from '@/lib/gemini-service';
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now();
-  console.log('\n' + '='.repeat(60));
-  console.log('🔵 API /chat START - Time:', new Date().toISOString());
-  
   try {
-    const body = await request.json();
+    const textBody = await request.text();
+    let body;
+
+    try {
+      if (!textBody) throw new Error("Empty body");
+      body = JSON.parse(textBody);
+    } catch (e) {
+      console.error('JSON Parse Error:', e);
+      // Return a friendly error response that structure matches what frontend expects for a "bot" reply, 
+      // OR let it 400 and let frontend handle it. 
+      // Original code returned 200 with error message. Let's do that for smoother UI.
+      return NextResponse.json(
+        {
+          text: "Maaf, pesan kamu tidak dapat saya proses saat ini. Coba lagi ya! 💕",
+          products: [],
+          hasProducts: false
+        },
+        { status: 200 }
+      );
+    }
+
     const { message } = body;
 
-    console.log('📨 Request body:', JSON.stringify(body));
-    console.log('📝 Message:', message?.substring(0, 50));
-
     if (!message || typeof message !== 'string') {
-      console.log('❌ Invalid message format');
       return NextResponse.json(
         { error: 'Message is required' },
         { status: 400 }
       );
     }
 
-    console.log('✅ Message valid, calling chatbot...');
     const chatbot = new DeAmouraChatbot();
     const response = await chatbot.generateResponse(message);
 
-    console.log('📤 Response:', response.text?.substring(0, 50) + '...');
-    console.log('✨ API /chat END (SUCCESS) - Duration:', Date.now() - startTime, 'ms');
-    console.log('='.repeat(60) + '\n');
-    
     return NextResponse.json(response);
   } catch (error: any) {
-    console.error('='.repeat(60));
-    console.error('❌ API /chat ERROR');
-    console.error('Error type:', error?.constructor?.name);
-    console.error('Error message:', error?.message);
-    console.error('Error code:', error?.code);
-    console.error('Error status:', error?.status);
-    console.error('Full error:', error);
-    console.error('Duration:', Date.now() - startTime, 'ms');
-    console.error('='.repeat(60) + '\n');
-    
+    console.error('API /chat ERROR:', error);
+
     return NextResponse.json(
-      { 
+      {
         text: "Haii! Maaf ya lagi gangguan. Coba lagi atau lihat katalog kita ya! 💕",
         products: [],
         categories: [],

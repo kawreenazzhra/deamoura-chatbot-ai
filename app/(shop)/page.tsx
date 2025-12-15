@@ -3,9 +3,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { 
-  ShoppingBag, Search, X, ArrowLeft, Heart, 
-  Share2, Star, Package, Truck, RotateCcw, 
+import {
+  ShoppingBag, Search, X, ArrowLeft, Heart,
+  Share2, Star, Package, Truck, RotateCcw,
   MessageCircle, Send, Instagram, Phone, MapPin,
   Filter, Grid, List
 } from 'lucide-react';
@@ -36,7 +36,7 @@ export default function ShopPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productSlug = searchParams.get('product');
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function ShopPage() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  
+
   const chatMessagesRef = useRef<HTMLDivElement>(null);
 
   // Categories
@@ -105,15 +105,15 @@ export default function ShopPage() {
   };
 
   const filteredProducts = products.filter(product => {
-    const matchesSearch = 
+    const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category?.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = 
-      selectedCategory === 'all' || 
+
+    const matchesCategory =
+      selectedCategory === 'all' ||
       product.category?.name.toLowerCase().includes(selectedCategory.toLowerCase());
-    
+
     return matchesSearch && matchesCategory;
   });
 
@@ -136,40 +136,34 @@ export default function ShopPage() {
 
     const userMessage = inputMessage.trim();
     setInputMessage('');
-    
+
     // Add user message to chat
     setChatMessages(prev => [...prev, { type: 'user', message: userMessage, timestamp: Date.now() }]);
     setIsChatLoading(true);
 
     try {
-      console.log('Sending message to /api/chat:', userMessage);
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage })
       });
 
-      console.log('Chat response status:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Chat request failed:', response.status, errorText);
         throw new Error(`Chat request failed: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      console.log('Chat response data:', data);
-      
+
       // Add bot response to chat
       if (data.text) {
-        console.log('Adding bot message to chat:', data.text);
         setChatMessages(prev => {
-          const updated = [...prev, { type: 'bot', message: data.text, timestamp: Date.now() }];
-          console.log('Chat messages updated, total:', updated.length);
+          const updated: ChatMessage[] = [...prev, { type: 'bot', message: data.text, timestamp: Date.now() }];
           return updated;
         });
+      } else if (data.response) { // Fallback for old API format if any
+        setChatMessages(prev => [...prev, { type: 'bot', message: data.response, timestamp: Date.now() }]);
       } else {
-        console.warn('No text in response:', data);
         setChatMessages(prev => [...prev, { type: 'bot', message: 'Maaf ada gangguan nih. Coba lagi ya! 💕', timestamp: Date.now() }]);
       }
     } catch (error) {
@@ -188,9 +182,9 @@ export default function ShopPage() {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-orange-600">
-                <img 
-                  src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center" 
-                  alt="de.amoura Logo" 
+                <img
+                  src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center"
+                  alt="de.amoura Logo"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -201,8 +195,8 @@ export default function ShopPage() {
             </div>
           </div>
 
-          <a 
-            href="https://www.tokopedia.com/de-amoura" 
+          <a
+            href="https://www.tokopedia.com/de-amoura"
             target="_blank"
             rel="noopener noreferrer"
             className="bg-amber-700 text-gray-50 px-6 py-2.5 rounded-full hover:bg-amber-600 transition-all duration-300 font-semibold shadow-md hover:shadow-lg flex items-center space-x-2"
@@ -223,9 +217,9 @@ export default function ShopPage() {
           <div className="md:col-span-2">
             <div className="flex items-center space-x-4 mb-4">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-orange-600">
-                <img 
-                  src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center" 
-                  alt="de.amoura Logo" 
+                <img
+                  src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center"
+                  alt="de.amoura Logo"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -242,8 +236,8 @@ export default function ShopPage() {
           <div>
             <h4 className="text-lg font-semibold text-white mb-4">Kontak Kami</h4>
             <div className="space-y-3">
-              <a 
-                href="https://instagram.com/de.amoura" 
+              <a
+                href="https://instagram.com/de.amoura"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-3 text-orange-200 hover:text-white transition-colors"
@@ -251,8 +245,8 @@ export default function ShopPage() {
                 <Instagram className="w-5 h-5" />
                 <span>@de.amoura</span>
               </a>
-              <a 
-                href="https://wa.me/6281234567890" 
+              <a
+                href="https://wa.me/6281234567890"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-3 text-orange-200 hover:text-white transition-colors"
@@ -315,11 +309,10 @@ export default function ShopPage() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedCategory === cat.id
-                    ? 'bg-orange-700 text-white'
-                    : 'bg-white text-orange-700 border border-orange-300 hover:bg-orange-50'
-                }`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === cat.id
+                  ? 'bg-orange-700 text-white'
+                  : 'bg-white text-orange-700 border border-orange-300 hover:bg-orange-50'
+                  }`}
               >
                 {cat.name}
               </button>
@@ -338,7 +331,7 @@ export default function ShopPage() {
                 className="w-full pl-10 pr-4 py-3 border border-orange-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-800 focus:border-transparent text-orange-900"
               />
             </div>
-            
+
             {/* View Toggle */}
             <div className="flex bg-white rounded-full p-1 border border-orange-300">
               <button
@@ -385,7 +378,7 @@ export default function ShopPage() {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-20">
           {filteredProducts.map(product => (
-            <div 
+            <div
               key={product.id}
               className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-orange-200 cursor-pointer"
               onClick={() => handleOpenProduct(product)}
@@ -432,7 +425,7 @@ export default function ShopPage() {
       ) : (
         <div className="space-y-4 mb-20">
           {filteredProducts.map(product => (
-            <div 
+            <div
               key={product.id}
               className="bg-white rounded-2xl shadow-lg overflow-hidden border border-orange-200 cursor-pointer hover:shadow-xl transition-all"
               onClick={() => handleOpenProduct(product)}
@@ -541,7 +534,7 @@ export default function ShopPage() {
               </button>
             </div>
           </div>
-          
+
           <div className="p-6 overflow-y-auto flex-1">
             <div className="md:grid md:grid-cols-2 gap-8 items-start">
               {/* Product Images */}
@@ -559,7 +552,7 @@ export default function ShopPage() {
                   )}
                 </div>
               </div>
-              
+
               {/* Product Info */}
               <div>
                 <div className="mb-4">
@@ -569,9 +562,9 @@ export default function ShopPage() {
                     </span>
                   )}
                 </div>
-                
+
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">{selectedProduct.name}</h1>
-                
+
                 {/* Price */}
                 <div className="mb-6">
                   <p className="text-4xl font-bold text-orange-700">
@@ -581,7 +574,7 @@ export default function ShopPage() {
                     Stok: <span className="font-semibold">{selectedProduct.stock} pcs</span>
                   </p>
                 </div>
-                
+
                 {/* Color/Variant Selection */}
                 {colors.length > 0 && (
                   <div className="mb-6">
@@ -593,11 +586,10 @@ export default function ShopPage() {
                           <button
                             key={index}
                             onClick={() => setSelectedColor(color)}
-                            className={`flex items-center px-4 py-2 rounded-lg border-2 transition-all ${
-                              selectedColor === color
-                                ? 'border-orange-600 bg-orange-50 shadow-md'
-                                : 'border-gray-300 hover:border-orange-400'
-                            }`}
+                            className={`flex items-center px-4 py-2 rounded-lg border-2 transition-all ${selectedColor === color
+                              ? 'border-orange-600 bg-orange-50 shadow-md'
+                              : 'border-gray-300 hover:border-orange-400'
+                              }`}
                             title={color}
                           >
                             {variant && variant.image ? (
@@ -610,7 +602,7 @@ export default function ShopPage() {
                                 />
                               </div>
                             ) : (
-                              <div 
+                              <div
                                 className="w-5 h-5 rounded-full mr-3 border border-gray-400 shadow-sm"
                                 style={{ backgroundColor: color.toLowerCase() }}
                               />
@@ -620,7 +612,7 @@ export default function ShopPage() {
                         );
                       })}
                     </div>
-                    
+
                     {/* Show selected variant image */}
                     {selectedColor && variants.length > 0 && (() => {
                       const selectedVariant = variants.find((v: any) => v.name === selectedColor);
@@ -640,7 +632,7 @@ export default function ShopPage() {
                     })()}
                   </div>
                 )}
-                
+
                 {/* Materials */}
                 {materials.length > 0 && (
                   <div className="mb-6">
@@ -654,7 +646,7 @@ export default function ShopPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Features */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="flex items-center text-gray-700">
@@ -670,13 +662,13 @@ export default function ShopPage() {
                     <span className="text-sm">Garansi 7 Hari</span>
                   </div>
                 </div>
-                
+
                 {/* Description */}
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">Deskripsi</h3>
                   <p className="text-gray-700 whitespace-pre-line">{selectedProduct.description}</p>
                 </div>
-                
+
                 {/* Action Buttons */}
                 <div className="space-y-4">
                   <a
@@ -737,11 +729,10 @@ export default function ShopPage() {
                   className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] p-3 rounded-2xl text-sm break-words ${
-                      msg.type === 'user'
-                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-br-none'
-                        : 'bg-amber-100 text-amber-900 rounded-bl-none'
-                    }`}
+                    className={`max-w-[80%] p-3 rounded-2xl text-sm break-words ${msg.type === 'user'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-br-none'
+                      : 'bg-amber-100 text-amber-900 rounded-bl-none'
+                      }`}
                   >
                     <p>{msg.message}</p>
                   </div>
@@ -755,8 +746,8 @@ export default function ShopPage() {
                 <div className="bg-amber-100 text-amber-900 p-3 rounded-2xl rounded-bl-none">
                   <div className="flex space-x-2">
                     <div className="w-2 h-2 bg-amber-900 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-amber-900 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-2 h-2 bg-amber-900 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    <div className="w-2 h-2 bg-amber-900 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-amber-900 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
