@@ -14,34 +14,44 @@ export function ChatWidget() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
-    // Add user message
-    setChatMessages(prev => [...prev, { type: 'user', message: inputMessage }]);
-    const userMessage = inputMessage;
+    const userMsg = inputMessage;
     setInputMessage('');
+
+    // Add user message
+    setChatMessages(prev => [...prev, { type: 'user', message: userMsg }]);
+
+    // Add loading placeholder
+    setChatMessages(prev => [...prev, { type: 'bot', message: '...' }]);
 
     try {
       // Call chatbot API
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage })
+        body: JSON.stringify({ message: userMsg })
       });
 
       const data = await response.json();
-      
-      // Add bot response
-      setChatMessages(prev => [...prev, { type: 'bot', message: data.response }]);
-      
-      // If products are suggested, you can display them
-      if (data.products && data.products.length > 0) {
-        // Logic to show suggested products
-      }
+
+      // Replace loading with real response
+      setChatMessages(prev => {
+        const newHistory = [...prev];
+        newHistory.pop(); // Remove loading
+        newHistory.push({ type: 'bot', message: data.text || data.reply || "Maaf, terjadi kesalahan." });
+        return newHistory;
+      });
+
     } catch (error) {
       console.error('Chat error:', error);
-      setChatMessages(prev => [...prev, {
-        type: 'bot',
-        message: 'Maaf, terjadi kesalahan. Silakan coba lagi nanti atau kunjungi katalog produk kami.'
-      }]);
+      setChatMessages(prev => {
+        const newHistory = [...prev];
+        newHistory.pop(); // Remove loading
+        newHistory.push({
+          type: 'bot',
+          message: 'Maaf, terjadi kesalahan. Silakan coba lagi nanti atau kunjungi katalog produk kami.'
+        });
+        return newHistory;
+      });
     }
   };
 
@@ -83,11 +93,10 @@ export function ChatWidget() {
                 className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] p-3 rounded-2xl ${
-                    msg.type === 'user'
+                  className={`max-w-[80%] p-3 rounded-2xl ${msg.type === 'user'
                       ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-br-none'
                       : 'bg-amber-100 text-amber-900 rounded-bl-none border border-amber-200'
-                  }`}
+                    }`}
                 >
                   <p className="text-sm">{msg.message}</p>
                 </div>

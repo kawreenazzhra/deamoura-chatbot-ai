@@ -11,19 +11,28 @@ model Product {
   id             Int      @id @default(autoincrement())
   name           String
   slug           String   @unique
-  description    String?
+  description    String?  @db.LongText
   price          Int
   stock          Int      @default(0)
   materials      Json?
   colors         Json?
-  imageUrl       String?  // URL or path under public/images
+  imageUrl       String?  @db.LongText // URL or Base64
   marketplaceUrl String?
   isActive       Boolean  @default(true)
   isFeatured     Boolean  @default(false)
   categoryId     Int?
   category       Category? @relation(fields: [categoryId], references: [id])
+  variants       ProductVariant[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model ProductVariant {
+  id        String   @id @default(uuid())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  imageUrl  String?  @db.LongText
 }
 
 model Category {

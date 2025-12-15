@@ -1,7 +1,7 @@
 // src/app/(admin)/admin/products/[id]/page.tsx
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Trash2, Upload, Plus, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -13,7 +13,8 @@ interface ProductVariant {
   image: string;
 }
 
-export default function EditProductPage({ params }: { params: { id: string } }) {
+export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const variantInputRef = useRef<HTMLInputElement>(null);
@@ -21,7 +22,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   // State Data
   const [mainImage, setMainImage] = useState<string>("");
   const [variants, setVariants] = useState<ProductVariant[]>([]);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -30,41 +31,64 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     description: '',
   });
 
-  // --- 1. SIMULASI FETCH DATA (Saat Halaman Dibuka) ---
+  // --- 1. FETCH DATA (Saat Halaman Dibuka) ---
   useEffect(() => {
-    // Ceritanya kita ambil data dari DB berdasarkan params.id
-    // Kita isi dengan DATA DUMMY yang strukturnya cocok dengan fitur baru
-    
-    setMainImage('https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=800&q=80'); // Foto Sampul Dummy
+    const fetchData = async () => {
+      if (!id) return;
+      try {
+        const res = await fetch(`/api/admin/products?id=${id}`);
+        // Handle if fetching specific ID fails, maybe fallback or user alert
+        if (!res.ok) {
 
-    setFormData({
-      name: 'Pashmina Premium Silk',
-      category: 'Pashmina',
-      price: '89000',
-      stock: '45', // Total stok
-      description: 'Pashmina bahan silk premium yang sangat lembut, mudah diatur, dan memberikan kesan mewah.',
-    });
+        }
 
-    // Varian Dummy
-    setVariants([
-      { 
-        id: 'v1', 
-        name: 'Dusty Pink', 
-        image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=400&q=80' 
-      },
-      { 
-        id: 'v2', 
-        name: 'Sage Green', 
-        image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=400&q=80' 
-      },
-      { 
-        id: 'v3', 
-        name: 'Mocca', 
-        image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=400&q=80' 
+        // Let's try fetching specific product logic:
+        // Since route.ts GET returns ALL, we fetch all and find.
+        const allRes = await fetch('/api/admin/products');
+        if (allRes.ok) {
+          const allProducts: any[] = await allRes.json();
+          const product = allProducts.find((p: any) => p.id === parseInt(id));
+
+          if (product) {
+            setMainImage(product.imageUrl || "");
+            setFormData({
+              name: product.name,
+              category: product.category?.name || "Pashmina",
+              price: product.price.toString(),
+              stock: product.stock.toString(),
+              description: product.description || "",
+            });
+
+            // Parse variants (JSON)
+
+
+            // Parse variants
+            if (product.variants && product.variants.length > 0) {
+              setVariants(product.variants.map((v: any) => ({
+                id: v.id || Math.random().toString(36).substr(2, 9),
+                name: v.name,
+                image: v.imageUrl || ""
+              })));
+            } else {
+              // Fallback to old 'colors' logic
+              const col = product.colors || [];
+              const restoredVariants = Array.isArray(col) ? col.map((c: string, idx: number) => ({
+                id: `restored-${idx}`,
+                name: c,
+                image: ""
+              })) : [];
+              setVariants(restoredVariants);
+            }
+          } else {
+            alert("Produk tidak ditemukan!");
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch product", e);
       }
-    ]);
-
-  }, [params.id]);
+    }
+    fetchData();
+  }, [id]);
 
   // --- HELPER: Convert File to Base64 ---
   const convertToBase64 = (file: File) => {
@@ -93,14 +117,14 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     if (files.length > 20) return alert("Maksimal upload 20 foto sekaligus.");
 
     const promises = Array.from(files).map(async (file) => {
-        if (file.size > 2 * 1024 * 1024) return null;
-        const base64 = await convertToBase64(file);
-        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/-/g, " ");
-        return {
-            id: Math.random().toString(36).substr(2, 9),
-            name: cleanName,
-            image: base64
-        };
+      if (file.size > 2 * 1024 * 1024) return null;
+      const base64 = await convertToBase64(file);
+      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/-/g, " ");
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        name: cleanName,
+        image: base64
+      };
     });
 
     const results = await Promise.all(promises);
@@ -114,8 +138,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   };
 
   const handleRemoveVariant = (id: string) => {
-    if(confirm("Hapus varian ini?")) {
-        setVariants(variants.filter((v) => v.id !== id));
+    if (confirm("Hapus varian ini?")) {
+      setVariants(variants.filter((v) => v.id !== id));
     }
   };
 
@@ -126,41 +150,89 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
   // --- ACTION BUTTONS ---
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mainImage) return alert("Foto utama wajib ada!");
     setIsLoading(true);
 
-    const updatedData = {
-        id: params.id,
-        ...formData,
-        image: mainImage,
-        variants: variants
-    };
+    try {
+      // Construct Payload
+      const payload = {
+        id: id,
+        name: formData.name,
+        // Slug handling? Ideally should update slug if name changes or keep existing.
+        // For now, let's keep existing slug or generic. 
+        // Warning: DB constraint unique slug. If we change name, we might want to update slug.
+        // Let's assume user doesn't change slug in this simple UI (it's not in formData state shown in UI inputs? Wait.
+        // In the UI inputs (lines 273), it uses `formData.name` but... where is SLUG input?
+        // In AddPage there was a Slug input. In EditPage... 
+        // Looking at the ViewFile content...
+        // Line 271: Nama Produk.
+        // Line 276: Grid Category & Stock.
+        // Line 293: Harga.
+        // Line 298: Deskripsi.
+        // THERE IS NO SLUG INPUT IN EDIT PAGE!
+        // But the backend REQUIRES a slug (or effectively it's in the payload).
+        // When updating, if we don't send slug, it keeps existing (based on PUT logic: `...(slug && { slug })`).
+        // So it's safe to NOT send slug if we don't want to change it.
 
-    console.log("DATA UPDATED:", updatedData);
+        description: formData.description,
+        price: formData.price,
+        stock: formData.stock,
+        categoryId: null, // Logic for ID lookup not implemented, sending null or 1?
+        // category input is a SELECT with "Pashmina", etc.
+        // Use dummy map or backend logic? 
+        // In AddPage `categoryId: null`. Backend uses `categoryId: categoryId ? parseInt...`.
+        // So likely categories are not fully implemented in DB relations yet or hardcoded.
+        // We'll send `null` or 1.
 
-    // Update localStorage (Simulasi)
-    const existingProducts = JSON.parse(localStorage.getItem('products') || '[]');
-    // Cari index produk yg mau diedit (logika sederhana)
-    // const index = existingProducts.findIndex(...) 
-    // existingProducts[index] = updatedData;
-    // localStorage.setItem('products', JSON.stringify(existingProducts));
+        materials: variants.map(v => v.name),
+        colors: variants.map(v => v.name),
+        variants: variants.map(v => ({ name: v.name, image: v.image })), // Send full objects
+        imageUrl: mainImage,
+        // marketplaceUrl? Not in formData.
+        isActive: true, // Default
+      };
 
-    setTimeout(() => {
+      const res = await fetch('/api/admin/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        if (res.status === 401) {
+          alert("Sesi berakhir. Login ulang.");
+          router.push('/admin/login');
+          return;
+        }
+        throw new Error(err.error || "Gagal update");
+      }
+
       alert("Data berhasil diperbarui!");
-      setIsLoading(false);
       router.push('/admin/products');
-    }, 1000);
+
+    } catch (error: any) {
+      console.error("Update error:", error);
+      alert(`Gagal: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirm("PERINGATAN FINAL: Apakah Anda yakin ingin menghapus produk ini selamanya?")) {
-        setIsLoading(true);
-        setTimeout(() => {
-            alert("Produk berhasil dihapus!");
-            router.push('/admin/products');
-        }, 1000);
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/admin/products?id=${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error("Gagal hapus");
+        alert("Produk berhasil dihapus!");
+        router.push('/admin/products');
+      } catch (error: any) {
+        alert(`Error: ${error.message}`);
+        setIsLoading(false);
+      }
     }
   };
 
@@ -168,98 +240,102 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     <div className="max-w-7xl mx-auto pb-10 px-4">
       {/* Header Halaman */}
       <div className="flex items-center gap-4 mb-6">
-        <Link 
-          href="/admin/products" 
+        <Link
+          href="/admin/products"
           className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
         >
           <ArrowLeft size={20} className="text-gray-600" />
         </Link>
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Edit Produk</h2>
-          <p className="text-gray-500 text-sm">Update informasi produk ID: <span className="font-mono text-amber-600">{params.id}</span></p>
+          <p className="text-gray-500 text-sm">Update informasi produk ID: <span className="font-mono text-amber-600">{id}</span></p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+
           {/* =======================
               KOLOM KIRI: FOTO & VARIAN
              ======================= */}
           <div className="space-y-8">
-            
+
             {/* 1. FOTO UTAMA */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Foto Sampul Utama</label>
-                <div className={`relative w-full aspect-video border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-center overflow-hidden transition-colors ${mainImage ? 'border-amber-500 bg-amber-50' : 'border-gray-300 hover:border-amber-400 hover:bg-gray-50'}`}>
-                    {mainImage ? (
-                        <>
-                            {/* Menggunakan Image next/js dengan handling external url */}
-                            <img src={mainImage} alt="Cover" className="w-full h-full object-cover" />
-                            <button type="button" onClick={() => setMainImage("")} className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full z-20 shadow-sm hover:bg-red-600 transition-colors">
-                                <Trash2 size={18} />
-                            </button>
-                        </>
-                    ) : (
-                        <div className="p-6">
-                            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-sm text-gray-600 font-medium">Klik untuk ganti foto sampul</p>
-                            <input type="file" accept="image/*" onChange={handleMainImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                        </div>
-                    )}
-                </div> 
+              <label className="block text-sm font-medium text-gray-700 mb-2">Foto Sampul Utama</label>
+              <div className={`relative w-full aspect-video border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-center overflow-hidden transition-colors ${mainImage ? 'border-amber-500 bg-amber-50' : 'border-gray-300 hover:border-amber-400 hover:bg-gray-50'}`}>
+                {mainImage ? (
+                  <>
+                    {/* Menggunakan Image next/js dengan handling external url */}
+                    <img src={mainImage} alt="Cover" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setMainImage("")} className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full z-20 shadow-sm hover:bg-red-600 transition-colors">
+                      <Trash2 size={18} />
+                    </button>
+                  </>
+                ) : (
+                  <div className="p-6">
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 font-medium">Klik untuk ganti foto sampul</p>
+                    <input type="file" accept="image/*" onChange={handleMainImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 2. BULK UPLOAD VARIAN */}
             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
-                <div className="flex justify-between items-center mb-4">
-                    <label className="block text-sm font-medium text-slate-800">Varian Warna ({variants.length})</label>
-                    <div className="relative">
-                        <button type="button" className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors">
-                            <Plus size={16} />
-                            Tambah Foto
-                        </button>
-                        <input 
-                            type="file" 
-                            multiple 
-                            accept="image/*"
-                            ref={variantInputRef}
-                            onChange={handleBulkVariantUpload}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                    </div>
+              <div className="flex justify-between items-center mb-4">
+                <label className="block text-sm font-medium text-slate-800">Varian Warna ({variants.length})</label>
+                <div className="relative">
+                  <button type="button" className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors">
+                    <Plus size={16} />
+                    Tambah Foto
+                  </button>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    ref={variantInputRef}
+                    onChange={handleBulkVariantUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
                 </div>
-                
-                {/* LIST VARIAN GRID */}
-                {variants.length === 0 ? (
-                    <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg bg-white/50">
-                        <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500">Belum ada varian.</p>
+              </div>
+
+              {/* LIST VARIAN GRID */}
+              {variants.length === 0 ? (
+                <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg bg-white/50">
+                  <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">Belum ada varian.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                  {variants.map((variant) => (
+                    <div key={variant.id} className="relative bg-white p-2 rounded-lg border border-gray-200 shadow-sm group hover:border-amber-400 transition-all">
+                      <div className="relative w-full aspect-square rounded-md overflow-hidden bg-gray-100 mb-2 flex items-center justify-center text-gray-400">
+                        {variant.image ? (
+                          <img src={variant.image} alt={variant.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon size={24} />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVariant(variant.id)}
+                          className="absolute top-1 right-1 bg-white/90 text-red-500 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white border border-gray-200 shadow-sm"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={variant.name}
+                        onChange={(e) => updateVariantName(variant.id, e.target.value)}
+                        className="w-full text-xs font-medium text-center border border-transparent hover:border-gray-300 focus:border-amber-500 focus:bg-white bg-transparent rounded px-1 py-1 outline-none transition-all"
+                      />
                     </div>
-                ) : (
-                    <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-                        {variants.map((variant) => (
-                            <div key={variant.id} className="relative bg-white p-2 rounded-lg border border-gray-200 shadow-sm group hover:border-amber-400 transition-all">
-                                <div className="relative w-full aspect-square rounded-md overflow-hidden bg-gray-100 mb-2">
-                                    <img src={variant.image} alt={variant.name} className="w-full h-full object-cover" />
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleRemoveVariant(variant.id)}
-                                        className="absolute top-1 right-1 bg-white/90 text-red-500 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                                <input 
-                                    type="text" 
-                                    value={variant.name}
-                                    onChange={(e) => updateVariantName(variant.id, e.target.value)}
-                                    className="w-full text-xs font-medium text-center border border-transparent hover:border-gray-300 focus:border-amber-500 focus:bg-white bg-transparent rounded px-1 py-1 outline-none transition-all"
-                                />
-                            </div>
-                        ))}
-                    </div>
-                )}
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -301,27 +377,27 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
             {/* Footer Tombol Edit & Hapus */}
             <div className="pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
-                <button 
-                    type="button"
-                    onClick={handleDelete}
-                    className="px-6 py-3 text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 border border-transparent hover:border-red-100"
-                >
-                    <Trash2 size={20} />
-                    Hapus Produk
-                </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-6 py-3 text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 border border-transparent hover:border-red-100"
+              >
+                <Trash2 size={20} />
+                Hapus Produk
+              </button>
 
-                <button 
-                    type="submit" 
-                    disabled={isLoading} 
-                    className="px-8 py-3 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-amber-200/50"
-                >
-                    {isLoading ? 'Menyimpan...' : (
-                        <>
-                            <Save size={20} />
-                            Simpan Perubahan
-                        </>
-                    )}
-                </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-8 py-3 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-amber-200/50"
+              >
+                {isLoading ? 'Menyimpan...' : (
+                  <>
+                    <Save size={20} />
+                    Simpan Perubahan
+                  </>
+                )}
+              </button>
             </div>
           </div>
 

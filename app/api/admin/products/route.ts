@@ -19,7 +19,7 @@ async function verifyAdmin(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const products = await prisma.product.findMany({
-      include: { category: true },
+      include: { category: true, variants: true },
       orderBy: { createdAt: 'desc' }
     })
     return NextResponse.json(products)
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       categoryId,
       materials,
       colors,
+      variants, // Expecting array of { name: string, image: string }
       imageUrl,
       marketplaceUrl,
       isActive = true,
@@ -63,18 +64,30 @@ export async function POST(request: NextRequest) {
         price: parseInt(price),
         stock: parseInt(stock) || 0,
         categoryId: categoryId ? parseInt(categoryId) : null,
-        materials: materials ? JSON.stringify(materials) : null,
-        colors: colors ? JSON.stringify(colors) : null,
+        materials: materials || [],
+        colors: colors || [],
         imageUrl,
         marketplaceUrl,
         isActive,
-        isFeatured
-      }
+        isFeatured,
+        variants: {
+          create: variants && Array.isArray(variants) ? variants.map((v: any) => ({
+            name: v.name,
+            imageUrl: v.image // Map frontend 'image' to schema 'imageUrl'
+          })) : []
+        }
+      },
+      include: { variants: true }
     })
     return NextResponse.json(product, { status: 201 })
-  } catch (err) {
-    console.error('Error creating product:', err)
-    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
+  } catch (err: any) {
+    console.error('Error creating product:', JSON.stringify(err, null, 2));
+
+    if (err.code === 'P2002') {
+      return NextResponse.json({ error: 'Slug product already exists (must be unique)' }, { status: 400 })
+    }
+
+    return NextResponse.json({ error: `Failed to create product: ${err.message}` }, { status: 500 })
   }
 }
 
@@ -95,6 +108,7 @@ export async function PUT(request: NextRequest) {
       categoryId,
       materials,
       colors,
+      variants,
       imageUrl,
       marketplaceUrl,
       isActive,
@@ -105,23 +119,50 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'id required' }, { status: 400 })
     }
 
-    const product = await prisma.product.update({
-      where: { id: parseInt(id) },
-      data: {
-        ...(name && { name }),
-        ...(slug && { slug }),
-        ...(description && { description }),
-        ...(price !== undefined && { price: parseInt(price) }),
-        ...(stock !== undefined && { stock: parseInt(stock) }),
-        ...(categoryId !== undefined && { categoryId: categoryId ? parseInt(categoryId) : null }),
-        ...(materials && { materials: JSON.stringify(materials) }),
-        ...(colors && { colors: JSON.stringify(colors) }),
-        ...(imageUrl && { imageUrl }),
-        ...(marketplaceUrl && { marketplaceUrl }),
-        ...(isActive !== undefined && { isActive }),
-        ...(isFeatured !== undefined && { isFeatured })
+    // Wrap update in transaction to safely replace variants if needed
+    const product = await prisma.$transaction(async (tx) => {
+      // 1. Update basic fields
+      await tx.product.update({
+        where: { id: parseInt(id) },
+        data: {
+          ...(name && { name }),
+          ...(slug && { slug }),
+          ...(description && { description }),
+          ...(price !== undefined && { price: parseInt(price) }),
+          ...(stock !== undefined && { stock: parseInt(stock) }),
+          ...(categoryId !== undefined && { categoryId: categoryId ? parseInt(categoryId) : null }),
+          ...(materials && { materials }),
+          ...(colors && { colors }),
+          ...(imageUrl && { imageUrl }),
+          ...(marketplaceUrl && { marketplaceUrl }),
+          ...(isActive !== undefined && { isActive }),
+          ...(isFeatured !== undefined && { isFeatured })
+        }
+      })
+
+      // 2. Handle Variants Logic if 'variants' is provided
+      if (variants && Array.isArray(variants)) {
+        // Option: Delete all existing and re-create (simplest for full sync)
+        await tx.productVariant.deleteMany({ where: { productId: parseInt(id) } })
+
+        if (variants.length > 0) {
+          await tx.productVariant.createMany({
+            data: variants.map((v: any) => ({
+              productId: parseInt(id),
+              name: v.name,
+              imageUrl: v.image || v.imageUrl // Handle both keys
+            }))
+          })
+        }
       }
+
+      // 3. Return updated product with relations
+      return await tx.product.findUnique({
+        where: { id: parseInt(id) },
+        include: { variants: true, category: true }
+      })
     })
+
     return NextResponse.json(product)
   } catch (err) {
     console.error('Error updating product:', err)

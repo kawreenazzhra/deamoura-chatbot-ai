@@ -16,7 +16,7 @@ export default function AddProductPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const variantInputRef = useRef<HTMLInputElement>(null)
-  
+
   const [mainImage, setMainImage] = useState<string>("")
   const [formData, setFormData] = useState({
     name: '',
@@ -70,7 +70,7 @@ export default function AddProductPage() {
 
     const results = await Promise.all(promises)
     const validResults = results.filter((v): v is ProductVariant => v !== null)
-    
+
     setVariants((prev) => [...prev, ...validResults])
 
     if (variantInputRef.current) variantInputRef.current.value = ""
@@ -99,7 +99,7 @@ export default function AddProductPage() {
 
     try {
       const colors = variants.map(v => v.name)
-      
+
       const res = await fetch('/api/admin/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,8 +110,9 @@ export default function AddProductPage() {
           price: formData.price,
           stock: formData.stock,
           categoryId: null,
-          materials: variants.map(v => v.name),
-          colors: colors,
+          materials: variants.map(v => v.name), // Keep for backward compat
+          colors: colors,                       // Keep for backward compat
+          variants: variants,                   // NEW: Send full variant objects {id, name, image}
           imageUrl: mainImage,
           marketplaceUrl: formData.marketplaceUrl,
           isActive: true,
@@ -121,7 +122,15 @@ export default function AddProductPage() {
 
       if (!res.ok) {
         const err = await res.json()
-        alert(`Error: ${err.error}`)
+        console.error("API Error Response:", err); // Debug log
+
+        if (res.status === 401) {
+          alert("Sesi admin berakhir. Silakan login kembali.");
+          router.push('/admin/login');
+          return;
+        }
+
+        alert(`Error: ${err.error || 'Gagal menyimpan produk'}`)
         setIsLoading(false)
         return
       }
@@ -129,8 +138,8 @@ export default function AddProductPage() {
       alert("Produk berhasil ditambahkan!")
       router.push('/admin/products')
     } catch (error) {
-      console.error('Submit error:', error)
-      alert("Terjadi error saat menyimpan produk")
+      console.error('Submit error details:', error) // Detailed debug log
+      alert("Terjadi error network/server saat menyimpan produk. Cek console untuk detail.")
       setIsLoading(false)
     }
   }
@@ -149,9 +158,9 @@ export default function AddProductPage() {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+
           <div className="space-y-8">
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Foto Sampul Utama</label>
               <div className={`relative w-full aspect-video border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-center overflow-hidden transition-colors ${mainImage ? 'border-amber-500 bg-amber-50' : 'border-gray-300 hover:border-amber-400 hover:bg-gray-50'}`}>
@@ -169,7 +178,7 @@ export default function AddProductPage() {
                     <input type="file" accept="image/*" onChange={handleMainImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                   </div>
                 )}
-              </div> 
+              </div>
             </div>
 
             <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
@@ -180,8 +189,8 @@ export default function AddProductPage() {
                     <Plus size={16} />
                     Upload Foto
                   </button>
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     multiple
                     accept="image/*"
                     ref={variantInputRef}
@@ -190,7 +199,7 @@ export default function AddProductPage() {
                   />
                 </div>
               </div>
-              
+
               {variants.length === 0 ? (
                 <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg bg-white/50">
                   <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
@@ -203,16 +212,16 @@ export default function AddProductPage() {
                     <div key={variant.id} className="relative bg-white p-2 rounded-lg border border-gray-200 shadow-sm group hover:border-amber-400 transition-all">
                       <div className="relative w-full aspect-square rounded-md overflow-hidden bg-gray-100 mb-2">
                         <Image src={variant.image} alt={variant.name} fill className="object-cover" />
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleRemoveVariant(variant.id)}
                           className="absolute top-1 right-1 bg-white/90 text-red-500 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
                         >
                           <Trash2 size={14} />
                         </button>
                       </div>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={variant.name}
                         onChange={(e) => updateVariantName(variant.id, e.target.value)}
                         className="w-full text-xs font-medium text-center border border-transparent hover:border-gray-300 focus:border-amber-500 focus:bg-white bg-transparent rounded px-1 py-1 outline-none transition-all placeholder-gray-400"
