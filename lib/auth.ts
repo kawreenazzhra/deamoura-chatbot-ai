@@ -1,3 +1,4 @@
+// @ts-ignore
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'dev-secret'

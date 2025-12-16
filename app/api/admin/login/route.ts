@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { findAdminByEmail, verifyAdminPassword } from '@/lib/db'
+// @ts-ignore
 import jwt from 'jsonwebtoken'
 
 export async function POST(request: NextRequest) {
