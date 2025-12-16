@@ -1,5 +1,5 @@
 // lib/gemini-service.ts
-import { searchProducts, getFAQ, getFeaturedProducts } from "@/lib/db";
+import { searchProducts, getFAQ, getFeaturedProducts } from "./db";
 
 // Define a local interface since we removed Prisma
 interface Product {
@@ -19,7 +19,7 @@ interface Product {
 }
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-const GEMINI_MODEL = "gemini-1.5-flash"; // Using standard robust model
+const GEMINI_MODEL = "gemini-2.5-flash"; // Updated to user-confirmed working model
 
 export class DeAmouraChatbot {
 
@@ -137,17 +137,26 @@ export class DeAmouraChatbot {
       if (!response.ok) {
         const errText = await response.text();
         console.error(`❌ Gemini API Error (${response.status}):`, errText);
+        console.error(`❌ Request Payload:`, JSON.stringify(payload, null, 2)); // Log payload for debugging
 
         if (response.status === 429 || response.status === 503) {
           console.warn("⚠️ Gemini Overloaded or Quota Exceeded");
           return {
-            text: "Waduh, server AI lagi sibuk banget atau kuota habis nih (Overload/Rate Limit). Tunggu sebentar lalu coba lagi ya! 🤯",
+            text: "Waduh, server AI lagi sibuk banget atau kuota habis nih (Overload/Rate Limit). Tunggu sebentar lalu coba lagi ya! 🤯\n\n(Error Code: 429/503)",
             products: products,
             categories: [],
             hasProducts: products.length > 0
           };
         }
-        throw new Error(`Gemini API Error: ${response.status} - ${errText}`);
+
+        // Return a visible error message to the chatbot UI for easier debugging
+        return {
+          text: `Maaf, terjadi error pada sistem AI. (Status: ${response.status})\nDetail: ${errText.substring(0, 100)}...`,
+          products: products,
+          categories: [],
+          hasProducts: products.length > 0
+        }
+        // throw new Error(`Gemini API Error: ${response.status} - ${errText}`);
       }
 
       const data = await response.json();
