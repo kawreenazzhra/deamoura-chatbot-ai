@@ -1,7 +1,7 @@
 // components/chat-widget.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
 
 export function ChatWidget() {
@@ -10,6 +10,18 @@ export function ChatWidget() {
   const [chatMessages, setChatMessages] = useState([
     { type: 'bot', message: 'Halo! Saya Asisten de.amoura. Ada yang bisa saya bantu mengenai produk hijab kami?' }
   ]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      // Use requestAnimationFrame to avoid interfering with input focus
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      });
+    }
+  }, [chatMessages]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -59,7 +71,10 @@ export function ChatWidget() {
 
       {/* Chat Window */}
       {showChatbot && (
-        <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-amber-800">
+        <div
+          className="chat-window fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-amber-800"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-4 rounded-t-2xl flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <MessageCircle className="w-6 h-6" />
@@ -84,23 +99,40 @@ export function ChatWidget() {
               >
                 <div
                   className={`max-w-[80%] p-3 rounded-2xl ${msg.type === 'user'
-                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-br-none'
-                      : 'bg-amber-100 text-amber-900 rounded-bl-none border border-amber-200'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-br-none'
+                    : 'bg-amber-100 text-amber-900 rounded-bl-none border border-amber-200'
                     }`}
                 >
                   <p className="text-sm">{msg.message}</p>
                 </div>
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
 
           <div className="p-4 border-t border-amber-200">
             <div className="flex space-x-2">
               <input
+                ref={inputRef}
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
+                onBlur={(e) => {
+                  // Prevent blur if clicking within the chat window
+                  const relatedTarget = e.relatedTarget as HTMLElement;
+                  if (relatedTarget && e.currentTarget.closest('.chat-window')?.contains(relatedTarget)) {
+                    e.preventDefault();
+                    e.currentTarget.focus();
+                  }
+                }}
                 placeholder="Tanya tentang produk hijab..."
                 className="flex-1 px-4 py-2 border border-amber-300 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-amber-900"
               />

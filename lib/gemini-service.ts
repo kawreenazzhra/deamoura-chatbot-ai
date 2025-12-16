@@ -117,17 +117,19 @@ export class DeAmouraChatbot {
       });
 
       if (!response.ok) {
-        if (response.status === 429) {
-          console.warn("⚠️ Gemini Quota Exceeded");
+        const errText = await response.text();
+        console.error(`❌ Gemini API Error (${response.status}):`, errText);
+
+        if (response.status === 429 || response.status === 503) {
+          console.warn("⚠️ Gemini Overloaded or Quota Exceeded");
           return {
-            text: "Maaf ya, kuota AI harian habis nih 🥺. Coba tanya lagi besok atau nanti ya! (429 Too Many Requests)",
+            text: "Waduh, server AI lagi sibuk banget atau kuota habis nih (Overload/Rate Limit). Tunggu sebentar lalu coba lagi ya! 🤯",
             products: products,
             categories: [],
             hasProducts: products.length > 0
           };
         }
-        const errData = await response.text();
-        throw new Error(`Gemini API Error: ${response.status} - ${errData}`);
+        throw new Error(`Gemini API Error: ${response.status} - ${errText}`);
       }
 
       const data = await response.json();
