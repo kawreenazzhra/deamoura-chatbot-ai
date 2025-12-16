@@ -21,21 +21,40 @@ export class DeAmouraChatbot {
         throw new Error("Gemini API Key is missing");
       }
 
-      // 1. Search for relevant products based on the message
-      const keywords = userMessage.split(" ").filter(w => w.length > 3);
-      let products: Product[] = [];
+      // 1. Search for relevant products and FAQs based on the message
+      const cleanMessage = userMessage.toLowerCase().replace(/[^\w\s]/g, '');
+      const keywords = cleanMessage.split(" ").filter(w => w.length > 2);
+
+      let products: any[] = [];
+      let faqs: any[] = [];
 
       if (keywords.length > 0) {
+        // Search Products
         products = await prisma.product.findMany({
           where: {
             OR: [
-              { name: { contains: userMessage } },
+              { name: { contains: cleanMessage } },
               ...keywords.map(k => ({ name: { contains: k } })),
-              ...keywords.map(k => ({ description: { contains: k } }))
+              ...keywords.map(k => ({ description: { contains: k } })),
+              ...keywords.map(k => ({ category: { name: { contains: k } } }))
             ],
             isActive: true
           },
+          include: { category: true },
           take: 5,
+        });
+
+        // Search FAQs
+        faqs = await prisma.faq.findMany({
+          where: {
+            OR: [
+              { question: { contains: cleanMessage } },
+              ...keywords.map(k => ({ question: { contains: k } })),
+              ...keywords.map(k => ({ answer: { contains: k } }))
+            ],
+            isActive: true
+          },
+          take: 3
         });
       }
 
@@ -49,21 +68,33 @@ export class DeAmouraChatbot {
 
       // 2. Prepare Context
       const productContext = products.map(p =>
-        `- ${p.name} (Harga: Rp${p.price}): ${p.description || "Tidak ada deskripsi"} [Warna: ${p.colors}, Material: ${p.materials}]`
-      ).join("\n");
+        `- ${p.name} (${p.category?.name || 'Hijab'})\n  Harga: Rp${p.price.toLocaleString('id-ID')}\n  Stok: ${p.stock}\n  Deskripsi: ${p.description || "Tidak ada deskripsi"}\n  Warna: ${p.colors}\n  Material: ${p.materials}`
+      ).join("\n\n");
+
+      const faqContext = faqs.map(f =>
+        `Tanya: ${f.question}\nJawab: ${f.answer}`
+      ).join("\n\n");
 
       const systemPrompt = `
-      Kamu adalah asisten AI untuk toko hijab "De Amoura".
-      Gunakan Bahasa Indonesia yang ramah, sopan, dan kekinian (ada emoji 💕, ✨).
-      
-      Konteks Produk yang Ditemukan:
-      ${productContext}
+      Kamu adalah "Amoura", asisten AI virtual untuk toko hijab "De Amoura".
+      Gunakan Bahasa Indonesia yang ramah, sopan, ceria, dan kekinian (gunakan emoji seperti 💕, ✨, 🌸 dalam porsi yang pas).
 
-      Tugasmu:
-      1. Jawab pertanyaan user berdasarkan produk di atas jika relevan.
-      2. Jika ada produk yang cocok, rekomendasikan dengan sebutkan nama.
-      3. Jika tidak ada, sebutkan produk best seller kami.
-      4. Jawab singkat dan persuasif.
+      INFORMASI PRODUK YANG DITEMUKAN:
+      ${productContext || "Tidak ada produk yang spesifik cocok dengan keyword, tapi ini rekomendasi best seller kami."}
+
+      INFORMASI FAQ (PERTANYAAN UMUM):
+      ${faqContext || "Tidak ada info FAQ spesifik."}
+
+      PANDUAN MENJAWAB:
+      1.  **Gunakan Data Produk**: Jika user bertanya tentang produk, JANGAN mengarang. Gunakan informasi harga, material, dan stok dari data di atas.
+      2.  **Gunakan Data FAQ**: Jika user bertanya soal pengiriman, toko, atau cara bayar, gunakan info dari bagian FAQ.
+      3.  **Detail & Spesifik**: Jelaskan kelebihan produk berdasarkan deskripsi dan materialnya. Contoh: "Bahannya dari ${products[0]?.materials || 'bahan premium'} yang adem banget lho, Kak!"
+      4.  **Persuasif**: Ajak user untuk checkout. Jika stok sedikit (< 10), ingatkan agar tidak kehabisan.
+      5.  **Cerdas**: Jika user tanya "ada something?", cari di list produk "somethingsomething" dan jawab "Ada dong Kak! Kita punya somethingsomething...".
+      6.  **Alternatif**: Jika produk yang dicari benar-benar tidak ada di list, tawarkan produk lain yang tersedia.
+
+      CONTOH RESPON YANG BAGUS:
+      "Halo Kak! Untuk hijab merah, kita punya *Pasmina Silk* nih. Harganya Rp45.000 aja. Bahannya silk premium yang flowy dan mewah banget. Stoknya tinggal 5 lho, yuk buruan diorder sebelum kehabisan! 💕"
 
       Pesan User: "${userMessage}"
       `;

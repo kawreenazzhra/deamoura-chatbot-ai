@@ -20,6 +20,9 @@ export async function uploadToCloudinary(base64: string) {
     return result.secure_url;
   } catch (error) {
     console.error("Cloudinary upload error:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
     return null;
   }
 }

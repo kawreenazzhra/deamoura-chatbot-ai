@@ -16,14 +16,23 @@ export default function AdminLayout({
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check if admin_token exists in cookies
-    const token = document.cookie.split('; ').find(c => c.startsWith('admin_token='))
-    if (!token) {
-      router.push('/admin-login')
-    } else {
-      setIsAuth(true)
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/admin/check-auth')
+        if (res.ok) {
+          setIsAuth(true)
+        } else {
+          router.push('/admin-login')
+        }
+      } catch (e) {
+        console.error('Auth check failed', e)
+        router.push('/admin-login')
+      } finally {
+        setIsLoading(false)
+      }
     }
-    setIsLoading(false)
+
+    checkAuth()
   }, [router])
 
   const handleLogout = () => {
@@ -42,7 +51,7 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      
+
       {/* SIDEBAR (Menu Kiri) */}
       <aside className="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:block">
         <div className="p-6 border-b border-slate-800 flex items-center gap-3">
@@ -57,7 +66,7 @@ export default function AdminLayout({
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
           </Link>
-          
+
           <Link href="/admin/products" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
             <Package size={20} />
             <span>Kelola Produk</span>
@@ -68,7 +77,7 @@ export default function AdminLayout({
             <span>Lihat Website</span>
           </Link>
 
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
           >
@@ -82,7 +91,7 @@ export default function AdminLayout({
       <main className="flex-1 p-8 overflow-y-auto">
         {children}
       </main>
-      
+
     </div>
   )
 }

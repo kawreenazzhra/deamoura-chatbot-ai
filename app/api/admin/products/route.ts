@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth'
 import { uploadToCloudinary } from '@/lib/cloudinary'
-import * as fs from 'fs'
-import * as path from 'path'
 
 // GET: Fetch all products (admin only)
 export async function GET(request: NextRequest) {
@@ -62,27 +60,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save base64 image to file instead of storing in database
+    // Save base64 image to Cloudinary
     let imageUrl = ''
     if (imageBase64 && imageBase64.startsWith('data:')) {
       try {
-        // Extract base64 data
-        const base64Data = imageBase64.split(',')[1]
-        if (!base64Data) throw new Error('Invalid base64 format')
-        
-        // Create filename
-        const filename = `${slug}-${Date.now()}.jpg`
-        const filepath = path.join(process.cwd(), 'public', 'uploads', filename)
-        
-        // Create directory if not exists
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads')
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true })
+        const result = await uploadToCloudinary(imageBase64)
+        if (result) {
+          imageUrl = result
+        } else {
+          throw new Error('Cloudinary upload failed')
         }
-        
-        // Save file
-        fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'))
-        imageUrl = `/uploads/${filename}`
       } catch (error) {
         console.error('Error saving image:', error)
         return NextResponse.json(
@@ -94,32 +81,22 @@ export async function POST(request: NextRequest) {
       imageUrl = imageBase64
     }
 
-    // Process variant images - save to file system and replace base64 with paths
+    // Process variant images - save to Cloudinary
     let variantsData: any[] = []
     if (variants && Array.isArray(variants)) {
-      variantsData = variants.map((variant: any) => {
+      variantsData = await Promise.all(variants.map(async (variant: any) => {
         if (variant.image && variant.image.startsWith('data:')) {
           try {
-            const base64Data = variant.image.split(',')[1]
-            if (!base64Data) return variant
-            
-            const filename = `${slug}-variant-${variant.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.jpg`
-            const filepath = path.join(process.cwd(), 'public', 'uploads', filename)
-            
-            const uploadDir = path.join(process.cwd(), 'public', 'uploads')
-            if (!fs.existsSync(uploadDir)) {
-              fs.mkdirSync(uploadDir, { recursive: true })
+            const result = await uploadToCloudinary(variant.image)
+            if (result) {
+              return { ...variant, image: result }
             }
-            
-            fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'))
-            return { ...variant, image: `/uploads/${filename}` }
           } catch (e) {
             console.warn('Error saving variant image:', e)
-            return variant
           }
         }
         return variant
-      })
+      }))
     }
 
     const product = await prisma.product.create({
