@@ -1,9 +1,25 @@
 // lib/gemini-service.ts
-import prisma from "@/lib/prisma";
-import { Product } from "@prisma/client";
+import { searchProducts, getFAQ, getFeaturedProducts } from "@/lib/db";
+
+// Define a local interface since we removed Prisma
+interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  price: number;
+  stock: number;
+  description: string | null;
+  imageUrl: string | null;
+  category?: { name: string };
+  materials?: any; // JSON string or array
+  colors?: any;    // JSON string or array
+  variants?: any;  // JSON string or array
+  marketplaceUrl?: string | null;
+  isFeatured?: boolean;
+}
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-1.5-flash"; // Using standard robust model
 
 export class DeAmouraChatbot {
 
@@ -30,46 +46,48 @@ export class DeAmouraChatbot {
 
       if (keywords.length > 0) {
         // Search Products
-        products = await prisma.product.findMany({
-          where: {
-            OR: [
-              { name: { contains: cleanMessage } },
-              ...keywords.map(k => ({ name: { contains: k } })),
-              ...keywords.map(k => ({ description: { contains: k } })),
-              ...keywords.map(k => ({ category: { name: { contains: k } } }))
-            ],
-            isActive: true
-          },
-          include: { category: true },
-          take: 5,
-        });
-
+        products = await searchProducts(cleanMessage);
         // Search FAQs
-        faqs = await prisma.faq.findMany({
-          where: {
-            OR: [
-              { question: { contains: cleanMessage } },
-              ...keywords.map(k => ({ question: { contains: k } })),
-              ...keywords.map(k => ({ answer: { contains: k } }))
-            ],
-            isActive: true
-          },
-          take: 3
-        });
+        faqs = await getFAQ(cleanMessage);
       }
 
       // Fallback
       if (products.length === 0) {
-        products = await prisma.product.findMany({
-          where: { isFeatured: true, isActive: true },
-          take: 3
-        });
+        products = await getFeaturedProducts();
+        products = products.slice(0, 3);
       }
 
-      // 2. Prepare Context
-      const productContext = products.map(p =>
-        `- ${p.name} (${p.category?.name || 'Hijab'})\n  Harga: Rp${p.price.toLocaleString('id-ID')}\n  Stok: ${p.stock}\n  Deskripsi: ${p.description || "Tidak ada deskripsi"}\n  Warna: ${p.colors}\n  Material: ${p.materials}`
-      ).join("\n\n");
+      // 2. Prepare Context (Enhanced & Safe)
+      const productContext = products.map(p => {
+        try {
+          // Helper to safe parse JSON-like fields
+          const safeParse = (val: any) => {
+            if (Array.isArray(val)) return val;
+            if (typeof val === 'string' && val.trim().startsWith('[')) {
+              try { return JSON.parse(val); } catch { return []; }
+            }
+            return typeof val === 'string' ? [val] : [];
+          };
+
+          const colors = safeParse(p.colors).join(', ');
+          const materials = safeParse(p.materials).join(', ');
+          const variants = safeParse(p.variants || [])
+            .map((v: any) => `${v.name || 'Varian'} (Stok: ${v.stock ?? 'Tanya Admin'})`)
+            .join(', ');
+
+          return `- ${p.name} (${p.category?.name || 'Hijab'})
+  Harga: Rp${p.price?.toLocaleString('id-ID') || '0'}
+  Stok Total: ${p.stock ?? 0}
+  Featured: ${p.isFeatured ? "Ya (Best Seller)" : "Tidak"}
+  Warna/Varian: ${variants || colors || "-"}
+  Material: ${materials || "-"}
+  Marketplace: ${p.marketplaceUrl || "-"}
+  Deskripsi: ${p.description || "Tidak ada deskripsi"}`;
+        } catch (err) {
+          console.warn('Error formatting product context:', p.id, err);
+          return `- ${p.name} (Data tidak lengkap)`;
+        }
+      }).join("\n\n");
 
       const faqContext = faqs.map(f =>
         `Tanya: ${f.question}\nJawab: ${f.answer}`
@@ -79,7 +97,7 @@ export class DeAmouraChatbot {
       Kamu adalah "Amoura", asisten AI virtual untuk toko hijab "De Amoura".
       Gunakan Bahasa Indonesia yang ramah, sopan, ceria, dan kekinian (gunakan emoji seperti 💕, ✨, 🌸 dalam porsi yang pas).
 
-      INFORMASI PRODUK YANG DITEMUKAN:
+      INFORMASI PRODUK YANG DITEMUKAN (Gunakan data ini!):
       ${productContext || "Tidak ada produk yang spesifik cocok dengan keyword, tapi ini rekomendasi best seller kami."}
 
       INFORMASI FAQ (PERTANYAAN UMUM):

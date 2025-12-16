@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { createProduct, getAllProductsAdmin, updateProduct, deleteProduct } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
@@ -11,12 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const products = await prisma.product.findMany({
-      include: {
-        category: true
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const products = await getAllProductsAdmin()
 
     return NextResponse.json(products)
   } catch (err) {
@@ -99,22 +94,20 @@ export async function POST(request: NextRequest) {
       }))
     }
 
-    const product = await prisma.product.create({
-      data: {
-        name,
-        slug,
-        description,
-        price: parseInt(price),
-        stock: parseInt(stock) || 0,
-        categoryId: categoryId ? parseInt(categoryId) : null,
-        materials: materials ? JSON.stringify(materials) : undefined,
-        colors: colors ? JSON.stringify(colors) : undefined,
-        imageUrl: imageUrl,
-        ...(variantsData.length > 0 && { variants: JSON.stringify(variantsData) }),
-        marketplaceUrl,
-        isActive,
-        isFeatured
-      }
+    const product = await createProduct({
+      name,
+      slug,
+      description,
+      price: parseInt(price),
+      stock: parseInt(stock) || 0,
+      categoryId: categoryId ? parseInt(categoryId) : null,
+      materials: materials,
+      colors: colors,
+      imageUrl: imageUrl,
+      variants: variantsData,
+      marketplaceUrl,
+      isActive,
+      isFeatured
     })
 
     return NextResponse.json(product, { status: 201 })
@@ -147,6 +140,7 @@ export async function PUT(request: NextRequest) {
       materials,
       colors,
       imageBase64,
+      variants, // Destructure variants here
       marketplaceUrl,
       isActive,
       isFeatured
@@ -169,25 +163,55 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const product = await prisma.product.update({
-      where: { id: parseInt(id) },
-      data: {
-        ...(name && { name }),
-        ...(slug && { slug }),
-        ...(description && { description }),
-        ...(price !== undefined && { price: parseInt(price) }),
-        ...(stock !== undefined && { stock: parseInt(stock) }),
-        ...(categoryId !== undefined && {
-          categoryId: categoryId ? parseInt(categoryId) : null
-        }),
-        ...(materials && { materials: JSON.stringify(materials) }),
-        ...(colors && { colors: JSON.stringify(colors) }),
-        ...(uploadedImageUrl && { imageUrl: uploadedImageUrl }),
-        ...(marketplaceUrl && { marketplaceUrl }),
-        ...(isActive !== undefined && { isActive }),
-        ...(isFeatured !== undefined && { isFeatured })
-      }
-    })
+    console.log('PUT received data:', { id, name, price, stock, categoryId });
+
+    // Helper for safe integer parsing
+    const safeInt = (val: any) => {
+      if (val === null || val === undefined || val === '') return 0;
+      const parsed = parseInt(val);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    // Process variant images - save to Cloudinary
+    let variantsData = variants;
+    if (variants && Array.isArray(variants)) {
+      variantsData = await Promise.all(variants.map(async (variant: any) => {
+        if (variant.image && variant.image.startsWith('data:')) {
+          try {
+            const result = await uploadToCloudinary(variant.image)
+            if (result) {
+              return { ...variant, image: result }
+            }
+          } catch (e) {
+            console.warn('Error saving variant image:', e)
+          }
+        }
+        return variant
+      }))
+    }
+
+    // Prepare update data
+    const updateData: any = {
+      name,
+      slug,
+      description,
+      price: safeInt(price),
+      stock: safeInt(stock),
+      categoryId: categoryId ? safeInt(categoryId) : null,
+      materials: materials,
+      colors: colors,
+      variants: variantsData,
+      marketplaceUrl,
+      isActive,
+      isFeatured
+    };
+
+    // Only update imageUrl if a new one was uploaded
+    if (uploadedImageUrl) {
+      updateData.imageUrl = uploadedImageUrl;
+    }
+
+    const product = await updateProduct(safeInt(id), updateData)
 
     return NextResponse.json(product)
   } catch (err) {
@@ -214,7 +238,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'id required' }, { status: 400 })
     }
 
-    await prisma.product.delete({ where: { id: parseInt(id) } })
+    await deleteProduct(parseInt(id))
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('Error deleting product:', err)
