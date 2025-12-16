@@ -48,69 +48,77 @@
 
 :root {
   --radius: 0.75rem;
-  /* Rounded premium feel */
 
-  /* Light Mode (Soft & Bold Brown Theme) */
-  /* Background: Soft warm cream/beige */
-  --background: oklch(0.97 0.01 80);
-  /* Foreground: Deep Bold Brown */
-  --foreground: oklch(0.25 0.04 40);
+  /* Earth Tone / Soft Pastel Brown Theme */
 
-  /* Card: White with a hint of warmth */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.04 40);
+  /* Background: Warm Off-White / Cream */
+  --background: oklch(0.98 0.01 85);
+  /* Foreground: Deep Earthy Brown */
+  --foreground: oklch(0.25 0.04 45);
 
-  /* Popover: Same as card */
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.04 40);
+  /* Card: Soft White */
+  --card: oklch(0.99 0.005 85);
+  --card-foreground: oklch(0.25 0.04 45);
 
-  /* Primary: Bold Chocolate Brown */
-  /* oklch(L C H) -> L=Lightness, C=Chroma, H=Hue (approx 40-60 is brown/orange) */
-  --primary: oklch(0.35 0.06 45);
-  --primary-foreground: oklch(0.98 0.01 80);
+  /* Popover */
+  --popover: oklch(0.99 0.005 85);
+  --popover-foreground: oklch(0.25 0.04 45);
 
-  /* Secondary: Soft Latte / Beige */
-  --secondary: oklch(0.92 0.02 85);
+  /* Primary: Muted Terracotta / Soft Brown */
+  --primary: oklch(0.55 0.12 50);
+  --primary-foreground: oklch(0.98 0.01 85);
+
+  /* Secondary: Pale Beige / Oatmeal */
+  --secondary: oklch(0.94 0.03 85);
   --secondary-foreground: oklch(0.35 0.06 45);
 
-  /* Accent: Golden/Bronze for premium highlights */
-  --accent: oklch(0.75 0.12 70);
-  --accent-foreground: oklch(0.25 0.04 40);
-  --gold: oklch(0.75 0.12 70);
-  --cream: oklch(0.95 0.02 85);
+  /* Accent: Muted Sage Green (Earth Contrast) */
+  --accent: oklch(0.85 0.08 140);
+  --accent-foreground: oklch(0.25 0.05 140);
+
+  /* Premium Colors */
+  --gold: oklch(0.75 0.12 85);
+  --cream: oklch(0.96 0.02 85);
   --chocolate: oklch(0.35 0.06 45);
 
-  /* Muted: Subtle gray-brown */
-  --muted: oklch(0.96 0.01 80);
-  --muted-foreground: oklch(0.55 0.03 60);
+  /* Muted */
+  --muted: oklch(0.92 0.02 85);
+  --muted-foreground: oklch(0.55 0.04 45);
 
   /* Destructive */
-  --destructive: oklch(0.55 0.15 20);
-  /* Reddish brown */
-  --destructive-foreground: oklch(0.98 0.01 80);
+  --destructive: oklch(0.60 0.15 20);
+  --destructive-foreground: oklch(0.98 0.01 85);
 
   /* Borders */
-  --border: oklch(0.90 0.02 85);
-  --input: oklch(0.90 0.02 85);
-  --ring: oklch(0.75 0.12 70);
-  /* Golden ring */
+  --border: oklch(0.90 0.03 85);
+  --input: oklch(0.90 0.03 85);
+  --ring: oklch(0.75 0.12 85);
+  /* Gold-ish ring */
 
-  /* Charts (Keeping existing or mapping to brown scale if needed, largely unused) */
-  --chart-1: oklch(0.40 0.06 45);
-  --chart-2: oklch(0.50 0.08 50);
-  --chart-3: oklch(0.60 0.10 55);
-  --chart-4: oklch(0.70 0.12 60);
-  --chart-5: oklch(0.80 0.14 65);
+  /* Charts */
+  --chart-1: oklch(0.55 0.12 50);
+  --chart-2: oklch(0.65 0.10 60);
+  --chart-3: oklch(0.75 0.08 70);
+  --chart-4: oklch(0.85 0.08 140);
+  /* Sage */
+  --chart-5: oklch(0.70 0.10 85);
 
-  /* Sidebar (Admin Area - matching theme) */
-  --sidebar: oklch(0.98 0.01 80);
-  --sidebar-foreground: oklch(0.25 0.04 40);
-  --sidebar-primary: oklch(0.35 0.06 45);
-  --sidebar-primary-foreground: oklch(0.98 0.01 80);
-  --sidebar-accent: oklch(0.92 0.02 85);
-  --sidebar-accent-foreground: oklch(0.35 0.06 45);
-  --sidebar-border: oklch(0.90 0.02 85);
-  --sidebar-ring: oklch(0.75 0.12 70);
+  /* Sidebar - Mapped to Classik Palette */
+  --sidebar: #fdfbf7;
+  /* Lightest Cream */
+  --sidebar-foreground: #50311d;
+  /* Dark Brown */
+  --sidebar-primary: #50311d;
+  /* Dark Brown */
+  --sidebar-primary-foreground: #d4cabc;
+  /* Cream */
+  --sidebar-accent: #d4cabc;
+  /* Cream */
+  --sidebar-accent-foreground: #50311d;
+  /* Dark Brown */
+  --sidebar-border: #a5907b;
+  /* Taupe */
+  --sidebar-ring: #a5907b;
 }
 
 .dark {
@@ -190,14 +198,22 @@
   }
 
   .premium-gradient {
-    @apply bg-gradient-to-br from-primary via-[#6B4432] to-[#4A2E1F];
+    background: linear-gradient(135deg, #50311d 0%, #806248 100%);
   }
 
   .soft-gradient {
-    @apply bg-gradient-to-br from-[#F5F1EE] via-white to-[#EAE4DC];
+    @apply bg-gradient-to-br from-[#fdfbf7] via-[#f7f3ef] to-[#d4cabc];
   }
 
   .gold-shine {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#B8860B] via-[#FFD700] to-[#B8860B];
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#806248] via-[#a5907b] to-[#806248];
+  }
+
+  .border-classik {
+    border-color: #a5907b;
+  }
+
+  .text-classik-strong {
+    color: #50311d;
   }
 }

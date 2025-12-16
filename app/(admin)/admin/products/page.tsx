@@ -55,7 +55,7 @@ export default function ProductListPage() {
     }
   }
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -64,13 +64,13 @@ export default function ProductListPage() {
       {/* Header Halaman */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Daftar Produk</h2>
-          <p className="text-gray-500 text-sm">Kelola katalog barang de.amoura disini.</p>
+          <h2 className="text-2xl font-bold text-classik-strong">Daftar Produk</h2>
+          <p className="text-muted-foreground text-sm">Kelola katalog barang de.amoura disini.</p>
         </div>
-        
-        <Link 
-          href="/admin/products/add" 
-          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+
+        <Link
+          href="/admin/products/add"
+          className="premium-gradient hover:shadow-lg text-white px-4 py-2 rounded-full flex items-center gap-2 text-sm font-medium transition-all"
         >
           <Plus size={18} />
           Tambah Produk
@@ -78,23 +78,23 @@ export default function ProductListPage() {
       </div>
 
       {/* Tabel Produk */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-classik/20 overflow-hidden">
         {/* Search Bar */}
-        <div className="p-4 border-b border-gray-100">
+        <div className="p-4 border-b border-classik/10">
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input 
-              type="text" 
-              placeholder="Cari nama produk..." 
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Cari nama produk..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             />
           </div>
         </div>
 
         <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+          <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-classik/10">
             <tr>
               <th className="px-6 py-4">Nama Produk</th>
               <th className="px-6 py-4">Harga</th>
@@ -102,23 +102,23 @@ export default function ProductListPage() {
               <th className="px-6 py-4 text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-classik/10">
             {loading ? (
-              <tr><td colSpan={4} className="text-center py-8 text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={4} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
             ) : filteredProducts.length === 0 ? (
-              <tr><td colSpan={4} className="text-center py-8 text-gray-400">Tidak ada produk.</td></tr>
+              <tr><td colSpan={4} className="text-center py-8 text-muted-foreground">Tidak ada produk.</td></tr>
             ) : (
               filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-slate-800">{product.name}</td>
-                  <td className="px-6 py-4 text-slate-600">Rp {product.price.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-slate-600">{product.stock} pcs</td>
+                <tr key={product.id} className="hover:bg-muted/20 transition-colors">
+                  <td className="px-6 py-4 font-medium text-foreground">{product.name}</td>
+                  <td className="px-6 py-4 text-muted-foreground">Rp {product.price.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-muted-foreground">{product.stock} pcs</td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Link href={`/admin/products/${product.id}`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                         <Pencil size={16} />
                       </Link>
-                      <button 
+                      <button
                         onClick={() => handleDelete(product.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       >

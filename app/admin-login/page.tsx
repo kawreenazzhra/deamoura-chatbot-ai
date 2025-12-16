@@ -31,13 +31,9 @@ export default function AdminLoginPage() {
       }
 
       const data = await res.json()
-      // Set token to cookie (jangan lupa set httpOnly flag di backend)
-      if (data.token) {
-        document.cookie = `admin_token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`
-      }
-
       // Redirect ke dashboard
       router.push('/admin')
+      router.refresh() // Ensure middleware re-runs
     } catch (err) {
       setError('Terjadi error saat login')
       console.error(err)

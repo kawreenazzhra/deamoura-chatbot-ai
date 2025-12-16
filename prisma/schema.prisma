@@ -17,6 +17,7 @@ model Product {
   materials      Json?
   colors         Json?
   imageUrl       String?  // URL or path under public/images
+  variants       Json?    // Array of {id, name, image} for variant images
   marketplaceUrl String?
   isActive       Boolean  @default(true)
   isFeatured     Boolean  @default(false)

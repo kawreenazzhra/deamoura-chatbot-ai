@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ArrowLeft, Save, Trash2, Upload, Plus, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -13,9 +13,11 @@ interface ProductVariant {
   image: string;
 }
 
-export default function EditProductPage({ params }: { params: { id: string } }) {
+export default function EditProductPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
+  const [productId, setProductId] = useState<string | null>(null);
   const variantInputRef = useRef<HTMLInputElement>(null);
 
   // State Data
@@ -30,41 +32,61 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     description: '',
   });
 
-  // --- 1. SIMULASI FETCH DATA (Saat Halaman Dibuka) ---
+  // --- 1. EXTRACT PRODUCT ID FROM URL & FETCH DATA ---
   useEffect(() => {
-    // Ceritanya kita ambil data dari DB berdasarkan params.id
-    // Kita isi dengan DATA DUMMY yang strukturnya cocok dengan fitur baru
+    // Extract ID from pathname (e.g., /admin/products/123 -> 123)
+    const pathParts = pathname.split('/');
+    const id = pathParts[pathParts.length - 1];
     
-    setMainImage('https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=800&q=80'); // Foto Sampul Dummy
-
-    setFormData({
-      name: 'Pashmina Premium Silk',
-      category: 'Pashmina',
-      price: '89000',
-      stock: '45', // Total stok
-      description: 'Pashmina bahan silk premium yang sangat lembut, mudah diatur, dan memberikan kesan mewah.',
-    });
-
-    // Varian Dummy
-    setVariants([
-      { 
-        id: 'v1', 
-        name: 'Dusty Pink', 
-        image: 'https://images.unsplash.com/photo-1610652457783-7244ac3db48c?w=400&q=80' 
-      },
-      { 
-        id: 'v2', 
-        name: 'Sage Green', 
-        image: 'https://images.unsplash.com/photo-1580626808041-fab7f47f4e56?w=400&q=80' 
-      },
-      { 
-        id: 'v3', 
-        name: 'Mocca', 
-        image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=400&q=80' 
+    if (!id || isNaN(parseInt(id))) {
+      router.push('/admin/products');
+      return;
+    }
+    
+    setProductId(id);
+    
+    const fetchProduct = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`/api/admin/products/${id}`);
+        if (!res.ok) throw new Error('Product not found');
+        const data = await res.json();
+        
+        setMainImage(data.image || '');
+        setFormData({
+          name: data.name || '',
+          category: data.categoryId || '',
+          price: data.price?.toString() || '',
+          stock: data.stock?.toString() || '',
+          description: data.description || '',
+        });
+        
+        // Parse variants from JSON if it's a string
+        let variantsData: ProductVariant[] = [];
+        if (data.variants) {
+          if (typeof data.variants === 'string') {
+            try {
+              variantsData = JSON.parse(data.variants) || [];
+            } catch (e) {
+              console.warn('Failed to parse variants:', e);
+              variantsData = [];
+            }
+          } else if (Array.isArray(data.variants)) {
+            variantsData = data.variants;
+          }
+        }
+        setVariants(Array.isArray(variantsData) ? variantsData : []);
+      } catch (error) {
+        console.error('Failed to fetch product:', error);
+        alert('Gagal memuat produk');
+        router.push('/admin/products');
+      } finally {
+        setIsLoading(false);
       }
-    ]);
-
-  }, [params.id]);
+    };
+    
+    fetchProduct();
+  }, [pathname, router]);
 
   // --- HELPER: Convert File to Base64 ---
   const convertToBase64 = (file: File) => {
@@ -126,41 +148,70 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
   // --- ACTION BUTTONS ---
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mainImage) return alert("Foto utama wajib ada!");
+    if (!formData.name || !formData.price) return alert("Nama dan Harga wajib diisi!");
+    if (!productId) return alert("Product ID tidak ditemukan");
+    
     setIsLoading(true);
+    try {
+      const imageBase64 = mainImage.startsWith('http') || mainImage.startsWith('/') 
+        ? mainImage 
+        : mainImage; // Already base64 or path
 
-    const updatedData = {
-        id: params.id,
-        ...formData,
-        image: mainImage,
-        variants: variants
-    };
+      const res = await fetch(`/api/admin/products/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          categoryId: formData.category,
+          price: parseFloat(formData.price),
+          stock: parseInt(formData.stock) || 0,
+          description: formData.description,
+          image: imageBase64,
+          variants: variants,
+        }),
+      });
 
-    console.log("DATA UPDATED:", updatedData);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to update product');
+      }
 
-    // Update localStorage (Simulasi)
-    const existingProducts = JSON.parse(localStorage.getItem('products') || '[]');
-    // Cari index produk yg mau diedit (logika sederhana)
-    // const index = existingProducts.findIndex(...) 
-    // existingProducts[index] = updatedData;
-    // localStorage.setItem('products', JSON.stringify(existingProducts));
-
-    setTimeout(() => {
-      alert("Data berhasil diperbarui!");
-      setIsLoading(false);
+      alert("Produk berhasil diperbarui!");
       router.push('/admin/products');
-    }, 1000);
+    } catch (error) {
+      console.error('Error updating product:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    if (!productId) return alert("Product ID tidak ditemukan");
     if (confirm("PERINGATAN FINAL: Apakah Anda yakin ingin menghapus produk ini selamanya?")) {
-        setIsLoading(true);
-        setTimeout(() => {
-            alert("Produk berhasil dihapus!");
-            router.push('/admin/products');
-        }, 1000);
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/admin/products/${productId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to delete product');
+        }
+
+        alert("Produk berhasil dihapus!");
+        router.push('/admin/products');
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -176,17 +227,17 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         </Link>
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Edit Produk</h2>
-          <p className="text-gray-500 text-sm">Update informasi produk ID: <span className="font-mono text-amber-600">{params.id}</span></p>
+          <p className="text-gray-500 text-sm">Update informasi produk ID: <span className="font-mono text-amber-600">{productId || 'Loading...'}</span></p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* =======================
-              KOLOM KIRI: FOTO & VARIAN
+              KOLOM KIRI: FOTO & VARIAN (1 kolom)
              ======================= */}
-          <div className="space-y-8">
+          <div className="space-y-8 lg:col-span-1">
             
             {/* 1. FOTO UTAMA */}
             <div>
@@ -264,9 +315,9 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           </div>
 
           {/* =======================
-              KOLOM KANAN: DETAIL INFO
+              KOLOM KANAN: DETAIL INFO (2 kolom)
              ======================= */}
-          <div className="space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Nama Produk</label>
               <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none transition-all" required />

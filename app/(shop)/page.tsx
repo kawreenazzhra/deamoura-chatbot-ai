@@ -1,7 +1,7 @@
 // app/shop/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   ShoppingBag, Search, X, ArrowLeft, Heart,
@@ -23,12 +23,19 @@ interface Product {
   colors: string[];
   materials: string[];
   marketplaceUrl?: string;
-  category?: { name: string };
+  category?: { id: number; name: string };
+}
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
 }
 
 interface ChatMessage {
   type: 'user' | 'bot';
   message: string;
+  timestamp?: number;
 }
 
 export default function ShopPage() {
@@ -43,30 +50,44 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [showChatbot, setShowChatbot] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { type: 'bot', message: 'Assalamualaikum! Selamat datang di de.amoura. Ada yang bisa saya bantu untuk menemukan hijab impianmu?' }
+    { type: 'bot', message: 'Haii! 👋 Ada yang bisa aku bantu tentang hijab de.amoura? Tanya-tanya yuk! ✨' }
   ]);
   const [inputMessage, setInputMessage] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Categories
-  const categories = [
-    { id: 'all', name: 'Semua Koleksi' },
-    { id: 'pashmina', name: 'Pashmina' },
-    { id: 'segi-empat', name: 'Segi Empat' },
-    { id: 'bergo', name: 'Bergo' },
-    { id: 'khimar', name: 'Khimar' },
-    { id: 'sport', name: 'Sport Series' }
-  ];
+  const chatMessagesRef = useRef<HTMLDivElement>(null);
 
-  // Fetch products on mount
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([
+    { id: 'all', name: 'Semua Produk' }
+  ]);
+
+  // Fetch products and categories on mount
   useEffect(() => {
     fetchProducts();
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/categories');
+      if (res.ok) {
+        const data: Category[] = await res.json();
+        const formattedCategories = [
+          { id: 'all', name: 'Semua Produk' },
+          ...data.map(cat => ({
+            id: cat.name.toLowerCase(), // Use name as ID for filtering compatibility
+            name: cat.name
+          }))
+        ];
+        setCategories(formattedCategories);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
 
   // Handle URL product parameter
   useEffect(() => {
@@ -77,6 +98,19 @@ export default function ShopPage() {
       }
     }
   }, [productSlug, products]);
+
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatMessagesRef.current) {
+      // Use setTimeout to ensure DOM has updated
+      const scrollTimer = setTimeout(() => {
+        if (chatMessagesRef.current) {
+          chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+        }
+      }, 0);
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [chatMessages]);
 
   const fetchProducts = async () => {
     try {
@@ -99,7 +133,7 @@ export default function ShopPage() {
 
     const matchesCategory =
       selectedCategory === 'all' ||
-      product.category?.name.toLowerCase().includes(selectedCategory.toLowerCase());
+      (product.category?.name && product.category.name.toLowerCase() === selectedCategory.toString().toLowerCase());
 
     return matchesSearch && matchesCategory;
   });
@@ -107,22 +141,57 @@ export default function ShopPage() {
   const handleOpenProduct = (product: Product) => {
     setSelectedProduct(product);
     setSelectedColor(null);
-    router.push(`/shop?product=${product.slug}`, { scroll: false });
+    // Update URL without page reload (use / instead of /shop)
+    router.push(`/?product=${product.slug}`, { scroll: false });
   };
 
   const handleCloseProduct = () => {
     setSelectedProduct(null);
     setSelectedColor(null);
-    router.push('/shop', { scroll: false });
+    // Remove product from URL
+    router.push('/', { scroll: false });
   };
 
-  const handleSendMessage = () => {
-    if (inputMessage.trim()) {
-      setChatMessages([...chatMessages,
-      { type: 'user', message: inputMessage },
-      { type: 'bot', message: 'Terima kasih atas pesan Kakak! Tim stylist kami akan segera membantu. Kakak juga bisa cek koleksi terbaru kami di Tokopedia ya!' }
-      ]);
-      setInputMessage('');
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isChatLoading) return;
+
+    const userMessage = inputMessage.trim();
+    setInputMessage('');
+
+    // Add user message to chat
+    setChatMessages(prev => [...prev, { type: 'user', message: userMessage, timestamp: Date.now() }]);
+    setIsChatLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Chat request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Add bot response to chat
+      if (data.text) {
+        setChatMessages(prev => {
+          const updated: ChatMessage[] = [...prev, { type: 'bot', message: data.text, timestamp: Date.now() }];
+          return updated;
+        });
+      } else if (data.response) { // Fallback for old API format if any
+        setChatMessages(prev => [...prev, { type: 'bot', message: data.response, timestamp: Date.now() }]);
+      } else {
+        setChatMessages(prev => [...prev, { type: 'bot', message: 'Maaf ada gangguan nih. Coba lagi ya! 💕', timestamp: Date.now() }]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setChatMessages(prev => [...prev, { type: 'bot', message: 'Maaf ada gangguan nih. Coba lagi ya! 💕', timestamp: Date.now() }]);
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -131,17 +200,19 @@ export default function ShopPage() {
     <header className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'glass py-2 border-b border-white/20' : 'bg-transparent py-4'}`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/90 backdrop-blur rounded-full flex items-center justify-center overflow-hidden border border-accent shadow-lg">
-              <img
-                src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center"
-                alt="de.amoura Logo"
-                className="w-full h-full object-cover opacity-90"
-              />
-            </div>
-            <div>
-              <h1 className={`text-xl md:text-2xl font-bold tracking-tight ${isScrolled ? 'text-primary' : 'text-primary'}`}>de.amoura</h1>
-              <p className="text-[10px] md:text-xs text-accent-foreground tracking-widest uppercase">Premium Modest Wear</p>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-primary">
+                <img
+                  src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center"
+                  alt="de.amoura Logo"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-primary-foreground">de.amoura</h1>
+                <p className="text-xs text-primary-foreground/80">Hijab & Fashion Muslim</p>
+              </div>
             </div>
           </div>
 
@@ -149,7 +220,7 @@ export default function ShopPage() {
             href="https://www.tokopedia.com/de-amoura"
             target="_blank"
             rel="noopener noreferrer"
-            className="group relative px-6 py-2.5 bg-primary text-primary-foreground rounded-full overflow-hidden shadow-lg transition-all hover:shadow-primary/25"
+            className="group relative px-6 py-2.5 premium-gradient text-white rounded-full overflow-hidden shadow-lg transition-all hover:shadow-primary/25"
           >
             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
             <div className="flex items-center space-x-2 relative z-10">
@@ -164,68 +235,60 @@ export default function ShopPage() {
 
   // Footer Component
   const Footer = () => (
-    <footer className="bg-primary text-primary-foreground pt-16 pb-8 mt-20">
+    <footer className="premium-gradient text-white py-4 mt-6">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          <div className="md:col-span-2 space-y-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-accent">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+          <div className="max-w-md">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-primary">
                 <img
                   src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center"
-                  alt="de.amoura"
+                  alt="de.amoura Logo"
                   className="w-full h-full object-cover"
                 />
               </div>
               <div>
-                <h3 className="text-2xl font-bold font-serif">de.amoura</h3>
-                <p className="text-accent text-sm tracking-widest uppercase">Elegance in Modesty</p>
+                <h3 className="text-xl font-bold font-serif leading-tight">de.amoura</h3>
+                <p className="text-accent text-[10px] tracking-widest uppercase">Elegance in Modesty</p>
               </div>
             </div>
-            <p className="text-primary-foreground/80 max-w-md leading-relaxed">
-              Menghadirkan keanggunan dalam setiap helai hijab. Kualitas premium untuk wanita muslimah yang mengutamakan kenyamanan dan gaya.
+            <p className="text-primary-foreground/80 text-sm leading-relaxed">
+              Keanggunan dalam setiap helai hijab. Premium, nyaman, dan bergaya.
             </p>
           </div>
 
-          <div>
-            <h4 className="text-lg font-semibold mb-6 flex items-center"><Sparkles className="w-4 h-4 mr-2 text-accent" /> Contact</h4>
-            <div className="space-y-4 text-primary-foreground/80">
-              <a href="https://instagram.com/de.amoura" target="_blank" className="flex items-center space-x-3 hover:text-accent transition-colors">
-                <Instagram className="w-5 h-5" />
+          <div className="text-left md:text-right">
+            <h4 className="text-sm font-bold text-white mb-3">Kontak</h4>
+            <div className="space-y-2 inline-flex flex-col items-start md:items-end">
+              <a
+                href="https://instagram.com/de.amoura"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 text-primary-foreground/80 hover:text-white transition-colors text-sm"
+              >
+                <Instagram className="w-4 h-4" />
                 <span>@de.amoura</span>
               </a>
-              <a href="https://wa.me/6281234567890" target="_blank" className="flex items-center space-x-3 hover:text-accent transition-colors">
-                <Phone className="w-5 h-5" />
+              <a
+                href="https://wa.me/6281234567890"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 text-primary-foreground/80 hover:text-white transition-colors text-sm"
+              >
+                <Phone className="w-4 h-4" />
                 <span>+62 812-3456-7890</span>
               </a>
-              <div className="flex items-center space-x-3">
-                <MapPin className="w-5 h-5" />
+              <div className="flex items-center space-x-2 text-sm text-primary-foreground/80">
+                <MapPin className="w-4 h-4" />
                 <span>Bandung, Indonesia</span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-lg font-semibold mb-6">Operasional</h4>
-            <div className="space-y-3 text-primary-foreground/80">
-              <div className="flex justify-between border-b border-primary-foreground/10 pb-2">
-                <span>Senin - Jumat</span>
-                <span>09:00 - 17:00</span>
-              </div>
-              <div className="flex justify-between border-b border-primary-foreground/10 pb-2">
-                <span>Sabtu</span>
-                <span>09:00 - 15:00</span>
-              </div>
-              <div className="flex justify-between opacity-60">
-                <span>Minggu</span>
-                <span>Libur</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-primary-foreground/10 pt-8 text-center">
-          <p className="text-sm text-primary-foreground/60">
-            &copy; {new Date().getFullYear()} de.amoura. Created with love.
+        <div className="border-t border-primary-foreground/10 pt-6 mt-8 text-center">
+          <p className="text-xs text-primary-foreground/60">
+            &copy; {new Date().getFullYear()} de.amoura.
           </p>
         </div>
       </div>
@@ -233,11 +296,11 @@ export default function ShopPage() {
   );
 
   // Main Content - Products List
-  const ProductsList = () => (
+  const productsList = (
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
-      <div className="text-center mb-16 relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-accent/5 blur-[100px] -z-10 rounded-full"></div>
+      <div className="text-center mb-16 relative py-12 bg-secondary/30 rounded-3xl border border-classik/20">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-accent/10 blur-[80px] -z-10 rounded-full"></div>
         <span className="inline-block py-1 px-3 rounded-full bg-accent/10 text-accent-foreground text-xs font-semibold tracking-wider mb-4 border border-accent/20">NEW COLLECTION 2025</span>
         <h2 className="text-4xl md:text-5xl font-bold text-primary mb-4 font-serif">Discover Your Elegance</h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
@@ -246,54 +309,55 @@ export default function ShopPage() {
       </div>
 
       {/* Search & Filter */}
-      <div className="mb-12 sticky top-20 z-30">
-        <div className="glass rounded-2xl p-4 shadow-lg border border-white/40">
-          <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
-            {/* Category Filter */}
-            <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${selectedCategory === cat.id
-                      ? 'bg-primary text-white shadow-md'
-                      : 'bg-secondary/50 text-secondary-foreground hover:bg-secondary hover:text-primary'
-                    }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
+      <div className="mb-8 space-y-6">
+        {/* Search Bar - Create a centered, prominent search bar like the user preferred */}
+        <div className="flex justify-center">
+          <div className="relative w-full max-w-2xl">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary w-6 h-6" />
+            <input
+              type="text"
+              placeholder="Cari produk hijab favoritmu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 text-lg border-2 border-primary/20 rounded-full focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary text-foreground shadow-sm transition-all placeholder-muted-foreground"
+            />
+          </div>
+        </div>
 
-            {/* Search Bar & View Toggle */}
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="relative flex-1 md:w-80 group">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-accent transition-colors" />
-                <input
-                  type="text"
-                  placeholder="Cari hijab favoritmu..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white/50 border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all text-sm"
-                />
-              </div>
+        {/* Category Filter & View Toggle - Centered below search */}
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-transparent p-4 rounded-2xl shadow-none border-none">
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id.toString())}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${selectedCategory.toString() === cat.id.toString()
+                  ? 'premium-gradient text-white shadow-md transform scale-105'
+                  : 'bg-white text-classik-strong border border-classik hover:bg-secondary/50'
+                  }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
 
-              {/* View Toggle */}
-              <div className="flex bg-secondary/30 rounded-full p-1 border border-border">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-full transition-all ${viewMode === 'grid' ? 'bg-white shadow text-primary' : 'text-muted-foreground hover:text-primary'}`}
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-full transition-all ${viewMode === 'list' ? 'bg-white shadow text-primary' : 'text-muted-foreground hover:text-primary'}`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+          {/* View Toggle */}
+          <div className="flex bg-secondary rounded-full p-1 border border-primary/20 flex-shrink-0">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-full transition-all duration-300 ${viewMode === 'grid' ? 'bg-white text-primary shadow-sm transform scale-105' : 'text-primary/60 hover:text-primary'}`}
+              title="Tampilan Grid"
+            >
+              <Grid className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-full transition-all duration-300 ${viewMode === 'list' ? 'bg-white text-primary shadow-sm transform scale-105' : 'text-primary/60 hover:text-primary'}`}
+              title="Tampilan List"
+            >
+              <List className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
@@ -327,7 +391,7 @@ export default function ShopPage() {
           {filteredProducts.map(product => (
             <div
               key={product.id}
-              className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden border border-border/50 cursor-pointer flex flex-col h-full"
+              className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden border border-classik/40 cursor-pointer flex flex-col h-full"
               onClick={() => handleOpenProduct(product)}
             >
               <div className="relative aspect-[4/5] overflow-hidden bg-secondary/10">
@@ -344,7 +408,7 @@ export default function ShopPage() {
                   </div>
                 )}
                 {product.category && (
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur text-primary px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur text-classik-strong border border-classik/20 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
                     {product.category.name}
                   </div>
                 )}
@@ -422,57 +486,92 @@ export default function ShopPage() {
     </div>
   );
 
+  // Helper function to safely parse JSON
+  const safeJsonParse = (data: any): any[] => {
+    if (!data) return [];
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        console.warn('Failed to parse JSON:', e);
+        return [];
+      }
+    }
+    // Already parsed (object or array)
+    return Array.isArray(data) ? data : [];
+  };
+
   // Product Detail Modal
   const ProductDetailModal = () => {
     if (!selectedProduct) return null;
 
-    const colors = selectedProduct.colors ? JSON.parse(selectedProduct.colors as any) : [];
-    const materials = selectedProduct.materials ? JSON.parse(selectedProduct.materials as any) : [];
+    const colors = safeJsonParse(selectedProduct.colors);
+    const materials = safeJsonParse(selectedProduct.materials);
+    const variants = safeJsonParse((selectedProduct as any).variants);
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-        <div className="bg-[#FAF9F6] rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-300 relative">
-          <button
-            onClick={handleCloseProduct}
-            className="absolute top-4 right-4 z-10 bg-white/50 hover:bg-white p-2 rounded-full transition-colors backdrop-blur-sm"
-          >
-            <X className="w-6 h-6 text-primary" />
-          </button>
-
-          <div className="flex flex-col md:flex-row min-h-[600px]">
-            {/* Left: Image Side */}
-            <div className="md:w-1/2 relative bg-[#F0EBE5]">
-              <div className="sticky top-0 h-full min-h-[400px]">
-                {selectedProduct.imageUrl ? (
-                  <Image
-                    src={selectedProduct.imageUrl}
-                    alt={selectedProduct.name}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ShoppingBag className="w-20 h-20 text-muted-foreground/20" />
-                  </div>
-                )}
-              </div>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-primary flex flex-col">
+          {/* Modal Header */}
+          <div className="bg-primary text-primary-foreground p-4 rounded-t-2xl flex items-center justify-between flex-shrink-0">
+            <button
+              onClick={handleCloseProduct}
+              className="flex items-center hover:bg-primary/90 p-2 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Kembali
+            </button>
+            <div className="flex items-center gap-4">
+              <button className="hover:bg-primary/90 p-2 rounded-full transition-colors">
+                <Heart className="w-5 h-5" />
+              </button>
+              <button className="hover:bg-primary/90 p-2 rounded-full transition-colors">
+                <Share2 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleCloseProduct}
+                className="hover:bg-primary/90 p-2 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
+          </div>
 
-            {/* Right: Info Side */}
-            <div className="md:w-1/2 p-8 md:p-12 flex flex-col">
-              <div className="mb-auto">
-                {selectedProduct.category && (
-                  <span className="text-accent font-semibold tracking-widest text-xs uppercase mb-4 block">
-                    {selectedProduct.category.name} Collection
-                  </span>
-                )}
+          <div className="p-6 overflow-y-auto flex-1">
+            <div className="md:grid md:grid-cols-2 gap-8 items-start">
+              {/* Product Images */}
+              <div className="mb-6 md:mb-0 md:max-w-sm">
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4 bg-gray-100 flex items-center justify-center">
+                  {selectedProduct.imageUrl ? (
+                    <Image
+                      src={selectedProduct.imageUrl}
+                      alt={selectedProduct.name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <ShoppingBag className="w-24 h-24 text-gray-400" />
+                  )}
+                </div>
+              </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4 font-serif">{selectedProduct.name}</h1>
+              {/* Product Info */}
+              <div>
+                <div className="mb-4">
+                  {selectedProduct.category && (
+                    <span className="inline-block bg-secondary text-primary px-3 py-1 rounded-full text-sm font-medium">
+                      {selectedProduct.category.name}
+                    </span>
+                  )}
+                </div>
 
-                <div className="flex items-center gap-4 mb-8 pb-8 border-b border-border">
-                  <div className="text-3xl font-light text-primary">
+                <h1 className="text-3xl font-bold text-gray-900 mb-4">{selectedProduct.name}</h1>
+
+                {/* Price */}
+                <div className="mb-6">
+                  <p className="text-4xl font-bold text-primary">
                     Rp {selectedProduct.price.toLocaleString()}
-                  </div>
+                  </p>
                   <div className="h-8 w-[1px] bg-border"></div>
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Star className="w-4 h-4 text-accent fill-accent mr-1" />
@@ -481,30 +580,93 @@ export default function ShopPage() {
                   </div>
                 </div>
 
-                {/* Color Selection */}
+                {/* Color/Variant Selection */}
                 {colors.length > 0 && (
-                  <div className="mb-8">
-                    <h3 className="text-sm font-semibold text-primary mb-3 uppercase tracking-wide">Pilih Warna</h3>
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Warna Tersedia</h3>
                     <div className="flex flex-wrap gap-3">
-                      {colors.map((color: string, index: number) => (
-                        <div key={index} className="group relative">
+                      {colors.map((color: string, index: number) => {
+                        const variant = variants.find((v: any) => v.name === color);
+                        return (
                           <button
+                            key={index}
                             onClick={() => setSelectedColor(color)}
-                            className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${selectedColor === color
-                                ? 'border-primary ring-2 ring-primary/20 scale-110'
-                                : 'border-transparent hover:scale-110'
+                            className={`flex items-center px-4 py-2 rounded-lg border-2 transition-all ${selectedColor === color
+                              ? 'border-primary bg-secondary shadow-md'
+                              : 'border-border hover:border-primary/60'
                               }`}
-                            style={{ backgroundColor: color.toLowerCase() }}
                             title={color}
-                          />
-                          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs bg-primary text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            {color}
-                          </span>
+                          >
+                            {variant && variant.image ? (
+                              <div className="relative w-6 h-6 rounded-full mr-3 border border-gray-300 overflow-hidden bg-gray-50">
+                                <Image
+                                  src={variant.image}
+                                  alt={color}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                className="w-5 h-5 rounded-full mr-3 border border-gray-400 shadow-sm"
+                                style={{ backgroundColor: color.toLowerCase() }}
+                              />
+                            )}
+                            <span className="text-sm font-medium">{color}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Show selected variant image */}
+                    {selectedColor && variants.length > 0 && (() => {
+                      const selectedVariant = variants.find((v: any) => v.name === selectedColor);
+                      return selectedVariant && selectedVariant.image ? (
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="text-sm text-gray-600 mb-2 font-medium">Detail Warna: {selectedColor}</p>
+                          <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-white border border-gray-300">
+                            <Image
+                              src={selectedVariant.image}
+                              alt={selectedColor}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
                         </div>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
+
+                {/* Materials */}
+                {materials.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Bahan</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {materials.map((material: string, index: number) => (
+                        <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                          {material}
+                        </span>
                       ))}
                     </div>
                   </div>
                 )}
+
+                {/* Features */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="flex items-center text-gray-700">
+                    <Truck className="w-5 h-5 text-green-600 mr-2" />
+                    <span className="text-sm">Gratis Ongkir</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <Package className="w-5 h-5 text-blue-600 mr-2" />
+                    <span className="text-sm">Pengiriman Cepat</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <RotateCcw className="w-5 h-5 text-purple-600 mr-2" />
+                    <span className="text-sm">Garansi 7 Hari</span>
+                  </div>
+                </div>
 
                 {/* Description */}
                 <div className="mb-8">
@@ -512,20 +674,16 @@ export default function ShopPage() {
                   <p className="text-muted-foreground leading-relaxed">{selectedProduct.description}</p>
                 </div>
 
-                {/* Features */}
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  {materials.length > 0 && (
-                    <div className="bg-white p-3 rounded-xl border border-border/50">
-                      <span className="text-xs text-muted-foreground block mb-1">Material</span>
-                      <span className="text-sm font-medium text-primary">{materials[0]}</span>
-                    </div>
-                  )}
-                  <div className="bg-white p-3 rounded-xl border border-border/50">
-                    <span className="text-xs text-muted-foreground block mb-1">Pengiriman</span>
-                    <span className="text-sm font-medium text-primary flex items-center">
-                      <Truck className="w-3 h-3 mr-1" /> Express
-                    </span>
-                  </div>
+                {/* Action Buttons */}
+                <div className="space-y-4">
+                  <a
+                    href={selectedProduct.marketplaceUrl || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full premium-gradient text-white text-center py-3.5 rounded-xl hover:opacity-90 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+                  >
+                    Beli di Tokopedia
+                  </a>
                 </div>
               </div>
 
@@ -538,7 +696,7 @@ export default function ShopPage() {
                   href={selectedProduct.marketplaceUrl || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-[2] bg-primary text-white text-center py-4 rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center"
+                  className="flex-[2] premium-gradient text-white text-center py-4 rounded-xl font-semibold hover:opacity-90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center"
                 >
                   Beli Sekarang
                 </a>
@@ -556,7 +714,7 @@ export default function ShopPage() {
       {!showChatbot && (
         <button
           onClick={() => setShowChatbot(true)}
-          className="fixed bottom-8 right-8 bg-primary text-white p-4 rounded-full shadow-2xl hover:shadow-primary/50 transition-all duration-300 transform hover:scale-110 z-40 group"
+          className="fixed bottom-8 right-8 premium-gradient text-white p-4 rounded-full shadow-2xl hover:shadow-primary/50 transition-all duration-300 transform hover:scale-110 z-40 group"
         >
           <MessageCircle className="w-6 h-6 group-hover:animate-bounce" />
           <span className="absolute -top-2 -right-2 bg-destructive w-4 h-4 rounded-full border-2 border-white"></span>
@@ -565,7 +723,7 @@ export default function ShopPage() {
 
       {showChatbot && (
         <div className="fixed bottom-8 right-8 w-80 sm:w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-border animate-in slide-in-from-bottom-10 duration-300">
-          <div className="bg-primary text-primary-foreground p-4 rounded-t-2xl flex items-center justify-between shadow-md">
+          <div className="premium-gradient text-white p-4 rounded-t-2xl flex items-center justify-between shadow-md">
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
@@ -586,22 +744,38 @@ export default function ShopPage() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FAF9F6]">
-            {chatMessages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+          <div ref={chatMessagesRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-secondary/30">
+            {chatMessages && chatMessages.length > 0 ? (
+              chatMessages.map((msg, index) => (
                 <div
-                  className={`max-w-[85%] p-3.5 rounded-2xl shadow-sm text-sm ${msg.type === 'user'
-                      ? 'bg-primary text-white rounded-br-none'
-                      : 'bg-white text-foreground border border-border rounded-bl-none'
-                    }`}
+                  key={msg.timestamp || index}
+                  data-message-type={msg.type}
+                  className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p>{msg.message}</p>
+                  <div
+                    className={`max-w-[80%] p-3 rounded-2xl text-sm break-words ${msg.type === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-br-none'
+                      : 'bg-secondary text-foreground rounded-bl-none'
+                      }`}
+                  >
+                    <p>{msg.message}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-amber-700 text-sm">Mulai percakapan...</div>
+            )}
+            {isChatLoading && (
+              <div className="flex justify-start">
+                <div className="bg-secondary text-foreground p-3 rounded-2xl rounded-bl-none">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
                 </div>
               </div>
-            ))}
+            )}
           </div>
 
           <div className="p-4 bg-white border-t border-border rounded-b-2xl">
@@ -610,13 +784,15 @@ export default function ShopPage() {
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Tulis pesan..."
-                className="flex-1 px-4 py-2.5 bg-secondary/30 border border-transparent rounded-full focus:outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all text-sm placeholder:text-muted-foreground"
+                onKeyPress={(e) => e.key === 'Enter' && !isChatLoading && handleSendMessage()}
+                placeholder="Ketik pertanyaan Anda..."
+                disabled={isChatLoading}
+                className="flex-1 px-4 py-2 border border-amber-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-700 focus:border-transparent text-amber-900 placeholder-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleSendMessage}
-                className="bg-primary text-white p-2.5 rounded-full hover:bg-primary/90 transition-colors shadow-sm"
+                disabled={isChatLoading}
+                className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-2 rounded-full hover:from-amber-600 hover:to-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -630,7 +806,7 @@ export default function ShopPage() {
   return (
     <div className="min-h-screen bg-background selection:bg-accent/30 selection:text-primary">
       <Header />
-      <ProductsList />
+      {productsList}
       <Footer />
       <ProductDetailModal />
       <ChatbotComponent />

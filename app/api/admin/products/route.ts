@@ -1,38 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma, createProduct, getProductById, updateProduct, deleteProduct } from '@/lib/db'
-import { verifyAdminToken, getAdminTokenFromCookie } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import { verifyAdmin } from '@/lib/auth'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 
-// Helper: Verify admin from request
-async function verifyAdmin(request: NextRequest) {
-  const token = getAdminTokenFromCookie(request.headers.get('cookie'))
-  if (!token) {
-    return { auth: null, error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  }
-  const admin = verifyAdminToken(token)
-  if (!admin) {
-    return { auth: null, error: NextResponse.json({ error: 'Invalid token' }, { status: 401 }) }
-  }
-  return { auth: admin, error: null }
-}
-
-// GET: Fetch all products
+// GET: Fetch all products (admin only)
 export async function GET(request: NextRequest) {
+  const { error, auth } = await verifyAdmin(request)
+  if (error) {
+    return NextResponse.json({ error }, { status: 401 })
+  }
+
   try {
     const products = await prisma.product.findMany({
-      include: { category: true },
+      include: {
+        category: true
+      },
       orderBy: { createdAt: 'desc' }
     })
+
     return NextResponse.json(products)
   } catch (err) {
     console.error('Error fetching products:', err)
-    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to fetch products' },
+      { status: 500 }
+    )
   }
 }
 
 // POST: Create product (admin only)
 export async function POST(request: NextRequest) {
-  const { auth, error } = await verifyAdmin(request)
-  if (error) return error
+  const { error, auth } = await verifyAdmin(request)
+  if (error) {
+    return NextResponse.json({ error }, { status: 401 })
+  }
 
   try {
     const data = await request.json()
@@ -45,14 +46,57 @@ export async function POST(request: NextRequest) {
       categoryId,
       materials,
       colors,
-      imageUrl,
+      imageBase64,
+      variants,
       marketplaceUrl,
       isActive = true,
       isFeatured = false
     } = data
 
-    if (!name || !slug || !price) {
-      return NextResponse.json({ error: 'name, slug, price required' }, { status: 400 })
+    if (!name || !slug || !price || !imageBase64) {
+      return NextResponse.json(
+        { error: 'name, slug, price, image required' },
+        { status: 400 }
+      )
+    }
+
+    // Save base64 image to Cloudinary
+    let imageUrl = ''
+    if (imageBase64 && imageBase64.startsWith('data:')) {
+      try {
+        const result = await uploadToCloudinary(imageBase64)
+        if (result) {
+          imageUrl = result
+        } else {
+          throw new Error('Cloudinary upload failed')
+        }
+      } catch (error) {
+        console.error('Error saving image:', error)
+        return NextResponse.json(
+          { error: 'Failed to save image' },
+          { status: 500 }
+        )
+      }
+    } else {
+      imageUrl = imageBase64
+    }
+
+    // Process variant images - save to Cloudinary
+    let variantsData: any[] = []
+    if (variants && Array.isArray(variants)) {
+      variantsData = await Promise.all(variants.map(async (variant: any) => {
+        if (variant.image && variant.image.startsWith('data:')) {
+          try {
+            const result = await uploadToCloudinary(variant.image)
+            if (result) {
+              return { ...variant, image: result }
+            }
+          } catch (e) {
+            console.warn('Error saving variant image:', e)
+          }
+        }
+        return variant
+      }))
     }
 
     const product = await prisma.product.create({
@@ -63,25 +107,32 @@ export async function POST(request: NextRequest) {
         price: parseInt(price),
         stock: parseInt(stock) || 0,
         categoryId: categoryId ? parseInt(categoryId) : null,
-        materials: materials ? JSON.stringify(materials) : null,
-        colors: colors ? JSON.stringify(colors) : null,
-        imageUrl,
+        materials: materials ? JSON.stringify(materials) : undefined,
+        colors: colors ? JSON.stringify(colors) : undefined,
+        imageUrl: imageUrl,
+        ...(variantsData.length > 0 && { variants: JSON.stringify(variantsData) }),
         marketplaceUrl,
         isActive,
         isFeatured
       }
     })
+
     return NextResponse.json(product, { status: 201 })
   } catch (err) {
     console.error('Error creating product:', err)
-    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to create product' },
+      { status: 500 }
+    )
   }
 }
 
-// PUT: Update product (admin only)
+// PUT: Update product (Admin only)
 export async function PUT(request: NextRequest) {
-  const { auth, error } = await verifyAdmin(request)
-  if (error) return error
+  const { error, auth } = await verifyAdmin(request)
+  if (error) {
+    return NextResponse.json({ error }, { status: 401 })
+  }
 
   try {
     const data = await request.json()
@@ -95,7 +146,7 @@ export async function PUT(request: NextRequest) {
       categoryId,
       materials,
       colors,
-      imageUrl,
+      imageBase64,
       marketplaceUrl,
       isActive,
       isFeatured
@@ -103,6 +154,19 @@ export async function PUT(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json({ error: 'id required' }, { status: 400 })
+    }
+
+    let uploadedImageUrl
+
+    // Jika frontend kirim imageBase64 berarti user ganti gambar
+    if (imageBase64) {
+      if (imageBase64.startsWith('data:')) {
+        // Try Cloudinary, jika gagal gunakan base64 langsung
+        const result = await uploadToCloudinary(imageBase64)
+        uploadedImageUrl = result || imageBase64
+      } else {
+        uploadedImageUrl = imageBase64
+      }
     }
 
     const product = await prisma.product.update({
@@ -113,26 +177,34 @@ export async function PUT(request: NextRequest) {
         ...(description && { description }),
         ...(price !== undefined && { price: parseInt(price) }),
         ...(stock !== undefined && { stock: parseInt(stock) }),
-        ...(categoryId !== undefined && { categoryId: categoryId ? parseInt(categoryId) : null }),
+        ...(categoryId !== undefined && {
+          categoryId: categoryId ? parseInt(categoryId) : null
+        }),
         ...(materials && { materials: JSON.stringify(materials) }),
         ...(colors && { colors: JSON.stringify(colors) }),
-        ...(imageUrl && { imageUrl }),
+        ...(uploadedImageUrl && { imageUrl: uploadedImageUrl }),
         ...(marketplaceUrl && { marketplaceUrl }),
         ...(isActive !== undefined && { isActive }),
         ...(isFeatured !== undefined && { isFeatured })
       }
     })
+
     return NextResponse.json(product)
   } catch (err) {
     console.error('Error updating product:', err)
-    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to update product' },
+      { status: 500 }
+    )
   }
 }
 
-// DELETE: Delete product (admin only)
+// DELETE
 export async function DELETE(request: NextRequest) {
-  const { auth, error } = await verifyAdmin(request)
-  if (error) return error
+  const { error, auth } = await verifyAdmin(request)
+  if (error) {
+    return NextResponse.json({ error }, { status: 401 })
+  }
 
   try {
     const { searchParams } = new URL(request.url)
@@ -146,6 +218,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('Error deleting product:', err)
-    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to delete product' },
+      { status: 500 }
+    )
   }
 }

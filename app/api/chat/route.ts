@@ -4,9 +4,30 @@ import { DeAmouraChatbot } from '@/lib/gemini-service';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json();
+    const textBody = await request.text();
+    let body;
 
-    if (!message) {
+    try {
+      if (!textBody) throw new Error("Empty body");
+      body = JSON.parse(textBody);
+    } catch (e) {
+      console.error('JSON Parse Error:', e);
+      // Return a friendly error response that structure matches what frontend expects for a "bot" reply, 
+      // OR let it 400 and let frontend handle it. 
+      // Original code returned 200 with error message. Let's do that for smoother UI.
+      return NextResponse.json(
+        {
+          text: "Maaf, pesan kamu tidak dapat saya proses saat ini. Coba lagi ya! 💕",
+          products: [],
+          hasProducts: false
+        },
+        { status: 200 }
+      );
+    }
+
+    const { message } = body;
+
+    if (!message || typeof message !== 'string') {
       return NextResponse.json(
         { error: 'Message is required' },
         { status: 400 }
@@ -17,11 +38,12 @@ export async function POST(request: NextRequest) {
     const response = await chatbot.generateResponse(message);
 
     return NextResponse.json(response);
-  } catch (error) {
-    console.error('Chat API Error:', error);
+  } catch (error: any) {
+    console.error('API /chat ERROR:', error);
+
     return NextResponse.json(
-      { 
-        response: "Maaf, sedang ada gangguan. Silakan coba lagi atau lihat katalog kami.",
+      {
+        text: "Haii! Maaf ya lagi gangguan. Coba lagi atau lihat katalog kita ya! 💕",
         products: [],
         categories: [],
         hasProducts: false
