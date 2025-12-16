@@ -336,17 +336,18 @@ export default function ShopPage() {
           </div>
         </div>
 
+
         {/* Category Filter & View Toggle - Centered below search */}
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-transparent p-4 rounded-2xl shadow-none border-none">
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-transparent px-4 rounded-xl">
+          {/* Category Filter - Wrapped List */}
+          <div className="flex flex-wrap gap-2 justify-center md:justify-start w-full md:w-auto">
             {categories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id.toString())}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${selectedCategory.toString() === cat.id.toString()
-                  ? 'bg-orange-700 text-white shadow-md transform scale-105'
-                  : 'bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 hover:border-orange-300'
+                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap flex-shrink-0 ${selectedCategory.toString() === cat.id.toString()
+                  ? 'bg-orange-700 text-white shadow-lg transform scale-105 ring-2 ring-orange-200'
+                  : 'bg-white text-orange-700 border border-orange-100 hover:bg-orange-50 hover:border-orange-200 shadow-sm'
                   }`}
               >
                 {cat.name}
