@@ -23,7 +23,13 @@ interface Product {
   colors: string[];
   materials: string[];
   marketplaceUrl?: string;
-  category?: { name: string };
+  category?: { id: number; name: string };
+}
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
 }
 
 interface ChatMessage {
@@ -53,20 +59,34 @@ export default function ShopPage() {
 
   const chatMessagesRef = useRef<HTMLDivElement>(null);
 
-  // Categories
-  const categories = [
-    { id: 'all', name: 'Semua Produk' },
-    { id: 'pashmina', name: 'Pashmina' },
-    { id: 'segi-empat', name: 'Segi Empat' },
-    { id: 'bergo', name: 'Bergo' },
-    { id: 'khimar', name: 'Khimar' },
-    { id: 'sport', name: 'Sport' }
-  ];
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([
+    { id: 'all', name: 'Semua Produk' }
+  ]);
 
-  // Fetch products on mount
+  // Fetch products and categories on mount
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/categories');
+      if (res.ok) {
+        const data: Category[] = await res.json();
+        const formattedCategories = [
+          { id: 'all', name: 'Semua Produk' },
+          ...data.map(cat => ({
+            id: cat.name.toLowerCase(), // Use name as ID for filtering compatibility
+            name: cat.name
+          }))
+        ];
+        setCategories(formattedCategories);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
 
   // Handle URL product parameter
   useEffect(() => {
@@ -112,7 +132,7 @@ export default function ShopPage() {
 
     const matchesCategory =
       selectedCategory === 'all' ||
-      product.category?.name.toLowerCase().includes(selectedCategory.toLowerCase());
+      (product.category?.name && product.category.name.toLowerCase() === selectedCategory.toString().toLowerCase());
 
     return matchesSearch && matchesCategory;
   });
@@ -290,7 +310,7 @@ export default function ShopPage() {
   );
 
   // Main Content - Products List
-  const ProductsList = () => (
+  const productsList = (
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
       <div className="text-center mb-12">
@@ -301,17 +321,32 @@ export default function ShopPage() {
       </div>
 
       {/* Search & Filter */}
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+      <div className="mb-8 space-y-6">
+        {/* Search Bar - Create a centered, prominent search bar like the user preferred */}
+        <div className="flex justify-center">
+          <div className="relative w-full max-w-2xl">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-orange-500 w-6 h-6" />
+            <input
+              type="text"
+              placeholder="Cari produk hijab favoritmu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 text-lg border-2 border-orange-200 rounded-full focus:outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-500 text-orange-900 shadow-sm transition-all placeholder-orange-300"
+            />
+          </div>
+        </div>
+
+        {/* Category Filter & View Toggle - Centered below search */}
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-transparent p-4 rounded-2xl shadow-none border-none">
           {/* Category Filter */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 justify-center md:justify-start">
             {categories.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === cat.id
-                  ? 'bg-orange-700 text-white'
-                  : 'bg-white text-orange-700 border border-orange-300 hover:bg-orange-50'
+                onClick={() => setSelectedCategory(cat.id.toString())}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${selectedCategory.toString() === cat.id.toString()
+                  ? 'bg-orange-700 text-white shadow-md transform scale-105'
+                  : 'bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 hover:border-orange-300'
                   }`}
               >
                 {cat.name}
@@ -319,34 +354,22 @@ export default function ShopPage() {
             ))}
           </div>
 
-          {/* Search Bar & View Toggle */}
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-500 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Cari produk hijab..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-orange-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-800 focus:border-transparent text-orange-900"
-              />
-            </div>
-
-            {/* View Toggle */}
-            <div className="flex bg-white rounded-full p-1 border border-orange-300">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-full ${viewMode === 'grid' ? 'bg-orange-100 text-orange-700' : 'text-orange-500'}`}
-              >
-                <Grid className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-full ${viewMode === 'list' ? 'bg-orange-100 text-orange-700' : 'text-orange-500'}`}
-              >
-                <List className="w-5 h-5" />
-              </button>
-            </div>
+          {/* View Toggle */}
+          <div className="flex bg-orange-50 rounded-full p-1 border border-orange-200 flex-shrink-0">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-full transition-all duration-300 ${viewMode === 'grid' ? 'bg-white text-orange-700 shadow-sm transform scale-105' : 'text-orange-400 hover:text-orange-600'}`}
+              title="Tampilan Grid"
+            >
+              <Grid className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-full transition-all duration-300 ${viewMode === 'list' ? 'bg-white text-orange-700 shadow-sm transform scale-105' : 'text-orange-400 hover:text-orange-600'}`}
+              title="Tampilan List"
+            >
+              <List className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
@@ -782,7 +805,7 @@ export default function ShopPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200">
       <Header />
-      <ProductsList />
+      {productsList}
       <Footer />
       <ProductDetailModal />
       <ChatbotComponent />

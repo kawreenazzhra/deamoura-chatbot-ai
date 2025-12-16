@@ -18,6 +18,7 @@ export { prisma }
 export async function getProducts() {
   return prisma.product.findMany({
     where: { isActive: true },
+    include: { category: true },
     orderBy: { createdAt: 'desc' }
   })
 }
@@ -31,7 +32,10 @@ export async function getFeaturedProducts() {
 }
 
 export async function getProductBySlug(slug: string) {
-  return prisma.product.findFirst({ where: { slug, isActive: true } })
+  return prisma.product.findFirst({
+    where: { slug, isActive: true },
+    include: { category: true }
+  })
 }
 
 export async function getCategories() {
@@ -48,6 +52,7 @@ export async function searchProducts(query: string) {
         { description: { contains: query } }
       ]
     },
+    include: { category: true },
     take: 3
   })
 }
