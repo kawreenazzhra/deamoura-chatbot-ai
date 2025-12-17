@@ -30,7 +30,6 @@ export class DeAmouraChatbot {
     hasProducts: boolean;
   }> {
     console.log('\n🤖 generateResponse START (REST) - message:', userMessage.substring(0, 30));
-    console.log('🤖 Model Version:', GEMINI_MODEL);
 
     try {
       if (!API_KEY) {
@@ -38,10 +37,7 @@ export class DeAmouraChatbot {
       }
 
       // 1. Search for relevant products and FAQs based on the message
-      // Clean message: remove non-alphanumeric chars (keep spaces), lowercase, trim
       const cleanMessage = userMessage.toLowerCase().replace(/[^\w\s]/g, ' ').trim();
-
-      // Initial Search (Exact phrase match attempts)
       let products: any[] = [];
       let faqs: any[] = [];
 
@@ -58,7 +54,6 @@ export class DeAmouraChatbot {
           'atau', 'di', 'ke', 'dari', 'ini', 'itu', 'dong', 'sih', 'kok', 'punya', 'lihat', 'coba', 'tes'
         ];
 
-        // Remove stop words and extra spaces
         const words = cleanMessage.split(/\s+/);
         const keywords = words.filter(w => !STOP_WORDS.includes(w) && w.length > 2);
         const smartQuery = keywords.join(" ");
@@ -73,16 +68,13 @@ export class DeAmouraChatbot {
 
         // Strategy C: Individual Keywords (if smart search fails)
         if (products.length === 0 && keywords.length > 0) {
-          // Try searching for the longest word first (likely the most unique part of a product name)
-          // e.g., "pashmina silk" -> "pashmina" (common) vs "silk" (material)
           const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length);
-
           for (const keyword of sortedKeywords) {
             console.log('🔍 Strategy C: Keyword Fallback ->', keyword);
             const keywordResults = await searchProducts(keyword);
             if (keywordResults.length > 0) {
               products = keywordResults;
-              break; // Found something!
+              break;
             }
           }
         }
@@ -95,10 +87,9 @@ export class DeAmouraChatbot {
         products = products.slice(0, 3);
       }
 
-      // 2. Prepare Context (Enhanced & Safe)
+      // 2. Prepare Context
       const productContext = products.map(p => {
         try {
-          // Helper to safe parse JSON-like fields
           const safeParse = (val: any) => {
             if (Array.isArray(val)) return val;
             if (typeof val === 'string' && val.trim().startsWith('[')) {
@@ -168,50 +159,70 @@ export class DeAmouraChatbot {
       Pesan User: "${userMessage}"
       `;
 
-      // 3. Call Gemini REST API
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${API_KEY}`;
+      // 3. Call Gemini REST API with Retry Strategy
+      const callGemini = async (model: string, retries = 3): Promise<string> => {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+        const payload = {
+          contents: [{ parts: [{ text: systemPrompt }] }]
+        };
 
-      const payload = {
-        contents: [{
-          parts: [{ text: systemPrompt }]
-        }]
+        for (let attempt = 1; attempt <= retries; attempt++) {
+          try {
+            const response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              return data.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, aku tidak bisa menjawab sekarang.";
+            }
+
+            // If error is 503 or 429, we retry
+            if (response.status === 503 || response.status === 429) {
+              console.warn(`Attempt ${attempt} failed with ${response.status}. Retrying...`);
+              if (attempt === retries) throw new Error(`Model ${model} overloaded after ${retries} attempts.`);
+              // Exponential backoff: 1s, 2s, 4s...
+              await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt - 1)));
+              continue;
+            }
+
+            // For other errors, throw immediately
+            const errText = await response.text();
+            throw new Error(`Gemini API Error: ${response.status} - ${errText}`);
+
+          } catch (e) {
+            if (attempt === retries) throw e;
+            console.warn(`Attempt ${attempt} error:`, e);
+            await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt - 1)));
+          }
+        }
+        throw new Error("Unable to generate response");
       };
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error(`❌ Gemini API Error (${response.status}):`, errText);
-        console.error(`❌ Request Payload:`, JSON.stringify(payload, null, 2)); // Log payload for debugging
-
-        if (response.status === 429 || response.status === 503) {
-          console.warn("⚠️ Gemini Overloaded or Quota Exceeded");
+      let text = "";
+      try {
+        // Try preferred model first
+        console.log(`🤖 Invoking Gemini with ${GEMINI_MODEL}...`);
+        text = await callGemini(GEMINI_MODEL, 2); // 2 retries on primary
+      } catch (primaryError) {
+        console.warn(`⚠️ Primary model ${GEMINI_MODEL} failed. Switching to fallback...`);
+        // Fallback to gemini-1.5-flash (stable)
+        try {
+          const FALLBACK_MODEL = "gemini-1.5-flash";
+          console.log(`🤖 Invoking Fallback ${FALLBACK_MODEL}...`);
+          text = await callGemini(FALLBACK_MODEL, 2);
+        } catch (fallbackError) {
+          console.error("❌ All models failed.");
           return {
-            text: "Waduh, server AI lagi sibuk banget atau kuota habis nih (Overload/Rate Limit). Tunggu sebentar lalu coba lagi ya! 🤯\n\n(Error Code: 429/503)",
+            text: "Waduh, server AI lagi sibuk banget nih (Overload). Tunggu sebentar lalu coba lagi ya! 🤯",
             products: products,
             categories: [],
             hasProducts: products.length > 0
           };
         }
-
-        // Return a visible error message to the chatbot UI for easier debugging
-        return {
-          text: `Maaf, terjadi error pada sistem AI. (Status: ${response.status})\nDetail: ${errText.substring(0, 100)}...`,
-          products: products,
-          categories: [],
-          hasProducts: products.length > 0
-        }
-        // throw new Error(`Gemini API Error: ${response.status} - ${errText}`);
       }
-
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, aku tidak bisa menjawab sekarang.";
 
       console.log('✅ Response generated:', text.substring(0, 50) + '...');
 
@@ -225,7 +236,7 @@ export class DeAmouraChatbot {
     } catch (error: any) {
       console.error('❌ Error:', error?.message);
       return {
-        text: "Maaf ya, aku lagi gangguan nih. Coba tanya lagi nanti ya! 💕 (Server Error)",
+        text: "Maaf ya, aku lagi gangguan nih. Coba tanya lagi nanti ya! 💕 (System Error)",
         products: [],
         categories: [],
         hasProducts: false
