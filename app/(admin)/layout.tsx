@@ -61,11 +61,6 @@ export default function AdminLayout({
         </div>
 
         <nav className="mt-6 px-4 space-y-2 flex flex-col h-[calc(100vh-120px)]">
-          <Link href="/admin" className="flex items-center gap-3 px-4 py-3 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors">
-            <LayoutDashboard size={20} />
-            <span>Dashboard</span>
-          </Link>
-
           <Link href="/admin/products" className="flex items-center gap-3 px-4 py-3 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors">
             <Package size={20} />
             <span>Kelola Produk</span>
