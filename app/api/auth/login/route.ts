@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { verifyPassword, generateAdminToken, setAdminCookie } from "@/lib/auth";
+import { findAdminByEmail, verifyAdminPassword } from "@/lib/db";
+import { generateAdminToken, setAdminCookie } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
 
-    const admin = await prisma.admin.findUnique({ where: { email } });
+    const admin = await findAdminByEmail(email);
 
     if (!admin) {
       return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
     }
 
-    const isValid = await verifyPassword(password, admin.passwordHash);
+    const isValid = await verifyAdminPassword(password, admin.passwordHash);
     if (!isValid) {
       return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
     }

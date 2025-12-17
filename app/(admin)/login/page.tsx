@@ -40,14 +40,14 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-amber-900 mb-2">De.Amoura</h1>
-        <p className="text-amber-600 mb-8">Admin Panel</p>
+    <div className="min-h-screen soft-gradient flex items-center justify-center p-4">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 w-full max-w-md border border-classik/20">
+        <h1 className="text-3xl font-bold text-classik-strong mb-2 font-serif">de.amoura</h1>
+        <p className="text-muted-foreground mb-8">Admin Panel</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground/80 mb-2">
               Email
             </label>
             <input
@@ -55,13 +55,13 @@ export default function AdminLogin() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2.5 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
               placeholder="admin@deamoura.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground/80 mb-2">
               Password
             </label>
             <input
@@ -69,7 +69,7 @@ export default function AdminLogin() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2.5 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
               placeholder="••••••••"
             />
           </div>
@@ -83,13 +83,13 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-lg transition disabled:opacity-50"
+            className="w-full premium-gradient text-white font-medium py-2.5 rounded-full hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 mt-4"
           >
-            {loading ? 'Loading...' : 'Login'}
+            {loading ? 'Loading...' : 'Login Access'}
           </button>
         </form>
 
-        <p className="text-xs text-gray-500 mt-6 text-center">
+        <p className="text-xs text-muted-foreground/60 mt-8 text-center">
           Admin access only. Unauthorized access is prohibited.
         </p>
       </div>

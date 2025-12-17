@@ -17,10 +17,13 @@ Before you begin, ensure you have the following:
 
 To make this project work, you need 3 main external services. Get these keys ready before running the project.
 
-### 1. Database (MySQL)
-You need a connection string.
-- **Format**: `mysql://USER:PASSWORD@HOST:PORT/DATABASE_NAME`
-- **Example**: `mysql://root:password@localhost:3306/deamoura_db`
+### 1. Database (Azure MySQL)
+You need credentials for your Azure MySQL Flexible Server.
+- **Host**: `your-server.mysql.database.azure.com`
+- **User**: `your_username`
+- **Password**: `your_password`
+- **Database**: `deamoura` (Will be created automatically if missing)
+- **SSL**: `true`
 
 ### 2. Google Gemini AI (Chatbot)
 Required for "Amoura" to answer questions.
@@ -54,9 +57,16 @@ npm install
 Create a file named `.env` in the root directory. Copy the content below and fill in your keys:
 
 ```ini
-# --- DATABASE ---
-# Replace with your actual MySQL URL
-DATABASE_URL="mysql://root:password@localhost:3306/deamoura"
+# --- DATABASE (Azure MySQL) ---
+DB_HOST="your-server.mysql.database.azure.com"
+DB_USER="your_username"
+DB_PASSWORD="your_password"
+DB_NAME="deamoura"
+DB_PORT="3306"
+DB_SSL="true"
+
+# Kept for reference (optional)
+# DATABASE_URL="..."
 
 # --- AUTHENTICATION ---
 # Generate a random string (e.g., using `openssl rand -hex 32`)
@@ -76,24 +86,20 @@ CLOUDINARY_API_SECRET="your_api_secret"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-### 4. Setup Database
-Run the following commands to create tables and generate the Prisma client:
+### 4. Setup Database & Admin Account
+Run the setup script to:
+1.  Connect to your Azure MySQL server.
+2.  Create the database `deamoura` (if it doesn't exist).
+3.  Create tables (`Product`, `Category`, `Faq`, `Admin`).
+4.  **Seed Data**: Creates a default Admin user and sample products.
 
 ```bash
-# Generate Prisma Client
-npx prisma generate
-
-# Push schema to your database (creates tables)
-npx prisma db push
+npm run db:setup
 ```
 
-### 5. Create Admin Account
-To access the Admin Panel, you need an admin account. Run this script to create a default admin:
-
-```bash
-# Creates user: admin@deamoura.com / password
-npx tsx scripts/reset-admin.ts
-```
+**Default Admin Credentials:**
+- **Email**: `admin@deamoura.com`
+- **Password**: `password`
 
 ---
 
@@ -108,19 +114,17 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 - **Storefront**: `http://localhost:3000`
-- **Admin Login**: `http://localhost:3000/admin-login` (Use `admin@deamoura.com` / `password`)
+- **Admin Login**: `http://localhost:3000/admin-login` (Use login above)
 
 ---
 
 ## 🧠 How the AI Works
 
-The Chatbot ("Amoura") is located in `src/lib/gemini-service.ts`.
+The Chatbot ("Amoura") is located in `lib/gemini-service.ts`.
 
-1.  **Context Retrieval**: When a user asks a question, the system searches the database for relevant **Products** and **FAQs** using fuzzy keyword matching.
-2.  **Prompt Injection**: The found product details (Price, Stock, Material) are formatted and injected into the System Prompt.
-3.  **Generation**: Google Gemini generates a response based on the strict persona of "Amoura" (Friendly, helpful) and the provided data.
-
-To modify the AI behavior, edit `src/lib/gemini-service.ts`.
+1.  **Context Retrieval**: When a user asks a question, the system searches the database for relevant **Products** and **FAQs** using SQL `LIKE` queries.
+2.  **Prompt Injection**: The found product details are formatted and injected into the System Prompt.
+3.  **Generation**: Google Gemini generates a response based on the strict persona of "Amoura" using the provided data.
 
 ---
 
@@ -129,16 +133,16 @@ To modify the AI behavior, edit `src/lib/gemini-service.ts`.
 - `app/(admin)`: Protected Admin routes.
 - `app/(shop)`: Public storefront routes.
 - `app/api`: Backend API endpoints (Next.js App Router).
-- `lib/prisma.ts`: Database connection instance.
+- `lib/db.ts`: MySQL connection pool and database helper functions (replaces Prisma).
 - `lib/gemini-service.ts`: AI Chatbot logic.
-- `lib/cloudinary.ts`: Image upload logic.
-- `prisma/schema.prisma`: Database schema definition.
+- `lib/auth.ts`: Authentication and JWT logic.
+- `scripts/setup-db.js`: Database initialization and seeding script.
 
 ---
 
 ## 🆘 Troubleshooting
 
+- **Database Connection Error**: Double check your `DB_HOST`, `DB_USER`, and `DB_PASSWORD` in `.env`. Ensure your Azure firewall allows calling IP.
 - **Image Upload Error**: Check if your Cloudinary credentials in `.env` are correct.
 - **AI Not Replying**: Check `NEXT_PUBLIC_GEMINI_API_KEY`. Also check console logs for "Quota Exceeded".
-- **Database Error**: Ensure your MySQL server is running and `DATABASE_URL` is correct.
 

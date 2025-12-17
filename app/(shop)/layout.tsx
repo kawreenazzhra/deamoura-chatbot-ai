@@ -6,7 +6,7 @@ export default function ShopLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200 min-h-screen">
+    <div className="bg-background text-foreground min-h-screen">
       {children}
     </div>
   );

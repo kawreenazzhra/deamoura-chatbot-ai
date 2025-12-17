@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { getProductById, updateProduct, deleteProduct } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
@@ -20,12 +20,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid product ID' }, { status: 400 })
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      include: {
-        category: true,
-      },
-    })
+    const product = await getProductById(productId)
 
     if (!product) {
       return NextResponse.json(
@@ -75,16 +70,15 @@ export async function PUT(
       image,
       variants,
       marketplaceUrl,
-      isActive = true,
-      isFeatured = false,
+      isActive,
+      isFeatured,
+      materials,
+      colors
     } = data
 
-    // Validate required fields
-    if (!name || price === undefined) {
-      return NextResponse.json(
-        { error: 'name and price are required' },
-        { status: 400 }
-      )
+    // Validate required fields (only if critical update)
+    if (name === '' || price === '') { // Simple check, undefined is allowed
+      // Actually updates can be partial
     }
 
     let imageUrl: string | undefined
@@ -110,8 +104,15 @@ export async function PUT(
       imageUrl = image
     }
 
-    // Process variant images - save to Cloudinary
-    let variantsData: any[] = []
+    // Helper for safe integer parsing
+    const safeInt = (val: any) => {
+      if (val === null || val === undefined || val === '') return 0;
+      const parsed = parseInt(val);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    // Process variant images - upload to Cloudinary if needed
+    let variantsData = variants;
     if (variants && Array.isArray(variants)) {
       variantsData = await Promise.all(variants.map(async (variant: any) => {
         if (variant.image && variant.image.startsWith('data:')) {
@@ -128,24 +129,25 @@ export async function PUT(
       }))
     }
 
-    const product = await prisma.product.update({
-      where: { id: productId },
-      data: {
-        name,
-        ...(description && { description }),
-        price: parseFloat(price),
-        stock: parseInt(stock) || 0,
-        ...(categoryId && { categoryId: parseInt(categoryId) }),
-        ...(imageUrl && { imageUrl }),
-        ...(variantsData.length > 0 && { variants: JSON.stringify(variantsData) }),
-        ...(marketplaceUrl && { marketplaceUrl }),
-        isActive,
-        isFeatured,
-      },
-      include: {
-        category: true,
-      },
-    })
+    const updateData: any = {
+      name,
+      description,
+      price: safeInt(price),
+      stock: safeInt(stock),
+      categoryId: categoryId ? safeInt(categoryId) : null,
+      imageUrl,
+      variants: variantsData,
+      marketplaceUrl,
+      isActive,
+      isFeatured,
+      materials,
+      colors
+    };
+
+    // Clean undefined
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+    const product = await updateProduct(productId, updateData);
 
     return NextResponse.json({
       ...product,
@@ -177,22 +179,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid product ID' }, { status: 400 })
     }
 
-    // Get product to find image file
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    })
-
-    if (!product) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      )
-    }
-
-    // Delete product from database
-    await prisma.product.delete({
-      where: { id: productId },
-    })
+    await deleteProduct(productId)
 
     return NextResponse.json({ success: true, message: 'Product deleted' })
   } catch (err) {
