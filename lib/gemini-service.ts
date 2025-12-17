@@ -1,6 +1,26 @@
 import { searchProducts, getFAQ, getFeaturedProducts, getRandomProducts } from "./db";
 
-// ... (interface Product remains same)
+export interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  stock: number;
+  imageUrl: string;
+  marketplaceUrl?: string;
+  isActive: boolean;
+  isFeatured: boolean;
+  categoryId: number;
+  materials: any;
+  colors: any;
+  variants: any;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+  } | null;
+}
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const GEMINI_MODEL = "gemini-2.5-flash";
