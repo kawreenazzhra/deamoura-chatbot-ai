@@ -364,9 +364,6 @@ function ShopContent() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-accent/10 blur-[80px] -z-10 rounded-full"></div>
           <span className="inline-block py-1 px-3 rounded-full bg-accent/10 text-accent-foreground text-xs font-semibold tracking-wider mb-4 border border-accent/20">NEW COLLECTION 2025</span>
           <h2 className="text-4xl md:text-5xl font-bold text-primary mb-4 font-serif">Discover Your Elegance</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-            Koleksi eksklusif dengan warna-warna earth tone yang lembut dan material premium yang nyaman dipakai seharian.
-          </p>
         </div>
 
         {/* Search & Filter Bar */}
