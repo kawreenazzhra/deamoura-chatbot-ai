@@ -11,7 +11,10 @@ const pool = mysql.createPool({
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  connectTimeout: 30000 // 30s timeout
 });
 
 export default pool;
@@ -20,7 +23,7 @@ export default pool;
 // Ini PENTING agar varian/warna terbaca sebagai Array di frontend, bukan String
 function parseProduct(product: any) {
   if (!product) return null;
-  
+
   // Helper kecil untuk parse aman
   const safeParse = (data: any) => {
     if (Array.isArray(data)) return data; // Sudah array
@@ -38,17 +41,17 @@ function parseProduct(product: any) {
     ...product,
     isActive: !!product.isActive,     // Convert 1/0 ke true/false
     isFeatured: !!product.isFeatured, // Convert 1/0 ke true/false
-    
+
     // Parse kolom JSON
     materials: safeParse(product.materials),
     colors: safeParse(product.colors),
     variants: safeParse(product.variants),
-    
+
     // Struktur kategori nested (biar frontend ga perlu ubah kodingan)
-    category: product.categoryId ? { 
-      id: product.categoryId, 
-      name: product.categoryName, 
-      slug: product.categorySlug 
+    category: product.categoryId ? {
+      id: product.categoryId,
+      name: product.categoryName,
+      slug: product.categorySlug
     } : null
   };
 }
@@ -111,6 +114,18 @@ export async function getProductById(id: number) {
 
   const product = (rows as any[])[0];
   return parseProduct(product);
+}
+
+export async function getRandomProducts() {
+  const [rows] = await pool.execute(`
+    SELECT p.*, c.name as categoryName, c.slug as categorySlug 
+    FROM Product p 
+    LEFT JOIN Category c ON p.categoryId = c.id 
+    WHERE p.isActive = 1 
+    ORDER BY RAND() 
+    LIMIT 3
+  `);
+  return (rows as any[]).map(parseProduct);
 }
 
 export async function searchProducts(query: string) {
@@ -198,7 +213,7 @@ export async function updateProduct(id: number, data: any) {
       fields.push(`${key} = ?`);
       // Pastikan stringify, dan handle null
       values.push(value === null ? '[]' : JSON.stringify(value));
-    } 
+    }
     // Handle Boolean Fields (MySQL pakai 1/0)
     else if (['isActive', 'isFeatured'].includes(key)) {
       fields.push(`${key} = ?`);

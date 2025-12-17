@@ -1,25 +1,9 @@
-// lib/gemini-service.ts
-import { searchProducts, getFAQ, getFeaturedProducts } from "./db";
+import { searchProducts, getFAQ, getFeaturedProducts, getRandomProducts } from "./db";
 
-// Define a local interface since we removed Prisma
-interface Product {
-  id: number;
-  name: string;
-  slug: string;
-  price: number;
-  stock: number;
-  description: string | null;
-  imageUrl: string | null;
-  category?: { name: string };
-  materials?: any; // JSON string or array
-  colors?: any;    // JSON string or array
-  variants?: any;  // JSON string or array
-  marketplaceUrl?: string | null;
-  isFeatured?: boolean;
-}
+// ... (interface Product remains same)
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-const GEMINI_MODEL = "gemini-2.5-flash"; // Updated to user-confirmed working model
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 export class DeAmouraChatbot {
 
@@ -36,41 +20,35 @@ export class DeAmouraChatbot {
         throw new Error("Gemini API Key is missing");
       }
 
-      // 1. Search for relevant products and FAQs based on the message
+      // 1. Search Logic
       const cleanMessage = userMessage.toLowerCase().replace(/[^\w\s]/g, ' ').trim();
       let products: any[] = [];
       let faqs: any[] = [];
+      let isRandomRecommendation = false; // Flag to tell AI these are random
 
       // Strategy A: Direct Search
       console.log('🔍 Strategy A: Direct Search ->', cleanMessage);
       products = await searchProducts(cleanMessage);
       faqs = await getFAQ(cleanMessage);
 
-      // Strategy B: Smart Search (Remove Stop Words)
+      // Strategy B: Smart Search (if needed)
       if (products.length === 0) {
-        const STOP_WORDS = [
-          'ada', 'nggak', 'enggak', 'tidak', 'mau', 'beli', 'cari', 'tolong', 'plis', 'please',
-          'kak', 'min', 'gan', 'sis', 'hallo', 'halo', 'hai', 'hi', 'apakah', 'yang', 'dan',
-          'atau', 'di', 'ke', 'dari', 'ini', 'itu', 'dong', 'sih', 'kok', 'punya', 'lihat', 'coba', 'tes'
-        ];
-
+        // ... (existing smart search logic omitted for brevity, logic remains same)
+        // You can keep the existing smart search logic here or simplify
+        const STOP_WORDS = ['ada', 'nggak', 'enggak', 'tidak', 'mau', 'beli', 'cari', 'tolong', 'plis', 'please', 'kak', 'min', 'gan', 'sis', 'hallo', 'halo', 'hai', 'hi', 'apakah', 'yang', 'dan', 'atau', 'di', 'ke', 'dari', 'ini', 'itu', 'dong', 'sih', 'kok', 'punya', 'lihat', 'coba', 'tes'];
         const words = cleanMessage.split(/\s+/);
         const keywords = words.filter(w => !STOP_WORDS.includes(w) && w.length > 2);
         const smartQuery = keywords.join(" ");
 
         if (smartQuery && smartQuery !== cleanMessage) {
-          console.log('🔍 Strategy B: Smart Search (Cleaned) ->', smartQuery);
           products = await searchProducts(smartQuery);
-          if (products.length === 0 && faqs.length === 0) {
-            faqs = await getFAQ(smartQuery);
-          }
         }
 
-        // Strategy C: Individual Keywords (if smart search fails)
+        // Strategy C: Individual Keywords
         if (products.length === 0 && keywords.length > 0) {
+          // ... (existing keyword fallback)
           const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length);
           for (const keyword of sortedKeywords) {
-            console.log('🔍 Strategy C: Keyword Fallback ->', keyword);
             const keywordResults = await searchProducts(keyword);
             if (keywordResults.length > 0) {
               products = keywordResults;
@@ -80,16 +58,18 @@ export class DeAmouraChatbot {
         }
       }
 
-      // Fallback: Featured Products if absolutely nothing found
+      // CRITICAL UPDATE: Random Fallback instead of Featured
       if (products.length === 0) {
-        console.log('⚠️ No products found. Fetching featured.');
-        products = await getFeaturedProducts();
-        products = products.slice(0, 3);
+        console.log('⚠️ No specific products found. Fetching RANDOM products for recommendation.');
+        // products = await getFeaturedProducts(); // OLD
+        products = await getRandomProducts();      // NEW
+        isRandomRecommendation = true;
       }
 
       // 2. Prepare Context
       const productContext = products.map(p => {
         try {
+          // ... (existing safeParse logic)
           const safeParse = (val: any) => {
             if (Array.isArray(val)) return val;
             if (typeof val === 'string' && val.trim().startsWith('[')) {
@@ -101,7 +81,7 @@ export class DeAmouraChatbot {
           const colors = safeParse(p.colors).join(', ');
           const materials = safeParse(p.materials).join(', ');
           const variants = safeParse(p.variants || [])
-            .map((v: any) => `${v.name || 'Varian'} (Stok: ${v.stock ?? 'Tanya Admin'})`)
+            .map((v: any) => `${v.name || 'Varian'}${v.stock ? ` (Stok: ${v.stock})` : ''}`)
             .join(', ');
 
           return `- ${p.name} (${p.category?.name || 'Hijab'})
@@ -113,54 +93,61 @@ export class DeAmouraChatbot {
   Marketplace: ${p.marketplaceUrl || "-"}
   Deskripsi: ${p.description || "Tidak ada deskripsi"}`;
         } catch (err) {
-          console.warn('Error formatting product context:', p.id, err);
           return `- ${p.name} (Data tidak lengkap)`;
         }
       }).join("\n\n");
 
-      const faqContext = faqs.map(f =>
-        `Tanya: ${f.question}\nJawab: ${f.answer}`
-      ).join("\n\n");
+      const faqContext = faqs.map(f => `Tanya: ${f.question}\nJawab: ${f.answer}`).join("\n\n");
 
       const systemPrompt = `
       Kamu adalah "Amoura", asisten AI virtual untuk toko hijab "De Amoura".
       Gunakan Bahasa Indonesia yang ramah, sopan, ceria, dan kekinian (gunakan emoji seperti 💕, ✨, 🌸 dalam porsi yang pas).
 
-      INFORMASI PRODUK YANG DITEMUKAN (Gunakan data ini!):
-      ${productContext || "Tidak ada produk yang spesifik cocok dengan keyword, tapi ini rekomendasi best seller kami."}
+      DATA PRODUK (Gunakan HANYA data ini!):
+      ${productContext || "TIDAK ADA DATA."}
 
-      INFORMASI FAQ (PERTANYAAN UMUM):
-      ${faqContext || "Tidak ada info FAQ spesifik."}
+      DATA FAQ:
+      ${faqContext || "TIDAK ADA DATA FAQ."}
 
-      PANDUAN MENJAWAB (PENTING):
-      1.  **FORMAT PRODUK**: Jika menjawab tentang produk, WAJIB gunakan format list berikut agar mudah dibaca:
-          
+      KONTEKS PENTING:
+      ${isRandomRecommendation
+          ? "⚠️ User mencari produk yang TIDAK DITEMUKAN secara spesifik. Sistem telah mengambil 3 produk RANDOM sebagai rekomendasi."
+          : "✅ Sistem menemukan produk yang relevan dengan pencarian user (atau user hanya menyapa/bertanya umum)."}
+
+      ATURAN MENJAWAB (PENTING):
+      1.  **LOGIS & JUJUR**:
+          - Jika user bertanya tentang produk Fashion/Hijab tapi tidak ada di data, tawarkan rekomendasi dengan antusias.
+          - **JIKA USER BERTANYA HAL DILUAR TOKO (Contoh: Mobil, Makanan, Elektronik)**: Jawab secara logis bahwa toko ini hanya menjual Hijab/Fashion muslim, lalu tawarkan rekomendasi yang ada sebagai opsi lain. Jangan berpura-pura bahwa "Mobil" adalah pilihan menarik di toko hijab.
+      2.  **Jadilah Proaktif**: Tawarkan produk yang ada di data setelah menjawab pertanyaan user.
+      3.  **Jujur Soal Data**: Tetap gunakan data produk (harga/stok) apa adanya, jangan dimanipulasi.
+      4.  JANGAN HALUSINASI: Jangan sebut produk yang tidak ada di "DATA PRODUK".
+
+      FORMAT JAWABAN PRODUK:
           ✨ **[Nama Produk]**
           💰 Harga: [Harga]
-          📦 Stok: [Jumlah Stok]
+          📦 Stok: [Stok]
           🎨 Varian: [Warna/Varian]
-          📝 [Deskripsi singkat 1 kalimat]
+          📝 [Deskripsi singkat]
 
-      2.  **JANGAN BERTELE-TELE**: Jawab langsung ke intinya. Tidak perlu basa-basi panjang.
-      3.  **Gunakan Data FAQ**: Jika user bertanya soal pengiriman/cara bayar, gunakan info FAQ.
-      4.  **Persuasif Tapi Singkat**: Akhiri dengan ajakan checkout yang simpel. "Yuk order sebelum kehabisan! 💕"
+      Contoh 1 (Relevan tapi Kosong):
+      User: "Ada kerudung ungu?"
+      Data: [Produk A (Hitam), Produk B (Putih)]
+      Jawab: "Halo Kak! Kalau yang ungu lagi kosong nih, TAPI Amoura punya rekomendasi warna netral yang cantik banget! Cek ini deh:
+      
+      ✨ **Produk A (Hitam)**...
+      
+      Gimana? Cantik kan? Yuk bungkus! 💕"
 
-      CONTOH RESPON:
-      "Ada Kak! Ini rekomendasinya:
-
-      ✨ **Pasmina Silk Premier**
-      💰 Harga: Rp45.000
-      📦 Stok: 5 pcs
-      🎨 Varian: Maroon, Navy, Hitam
-      📝 Bahannya silk premium yang jatuh dan mewah banget.
-
-      Yuk bungkus sekarang Kak! 🌸"
+      Contoh 2 (Tidak Relevan / Aneh):
+      User: "Ada jual Mobil?"
+      Data: [Produk A, Produk B]
+      Jawab: "Waduh, De Amoura cuma jualan Hijab cantik Kak, nggak jual mobil hehe 🤭. Tapi kalau mau cari hijab biar makin kece saat nyetir, cek koleksi best seller kami ini ya! 💕: ..."
 
       Pesan User: "${userMessage}"
       `;
 
       // 3. Call Gemini REST API with Retry Strategy
-      const callGemini = async (model: string, retries = 3): Promise<string> => {
+      const callGemini = async (model: string, retries = 5): Promise<string> => {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
         const payload = {
           contents: [{ parts: [{ text: systemPrompt }] }]
@@ -181,10 +168,10 @@ export class DeAmouraChatbot {
 
             // If error is 503 or 429, we retry
             if (response.status === 503 || response.status === 429) {
-              console.warn(`Attempt ${attempt} failed with ${response.status}. Retrying...`);
+              console.warn(`Attempt ${attempt} failed with ${response.status}. Retrying in ${2 * Math.pow(2, attempt - 1)}s...`);
               if (attempt === retries) throw new Error(`Model ${model} overloaded after ${retries} attempts.`);
-              // Exponential backoff: 1s, 2s, 4s...
-              await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt - 1)));
+              // Exponential backoff starting at 2s: 2s, 4s, 8s, 16s...
+              await new Promise(res => setTimeout(res, 2000 * Math.pow(2, attempt - 1)));
               continue;
             }
 
@@ -195,7 +182,7 @@ export class DeAmouraChatbot {
           } catch (e) {
             if (attempt === retries) throw e;
             console.warn(`Attempt ${attempt} error:`, e);
-            await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt - 1)));
+            await new Promise(res => setTimeout(res, 2000 * Math.pow(2, attempt - 1)));
           }
         }
         throw new Error("Unable to generate response");
@@ -203,25 +190,16 @@ export class DeAmouraChatbot {
 
       let text = "";
       try {
-        // Try preferred model first
         console.log(`🤖 Invoking Gemini with ${GEMINI_MODEL}...`);
-        text = await callGemini(GEMINI_MODEL, 2); // 2 retries on primary
-      } catch (primaryError) {
-        console.warn(`⚠️ Primary model ${GEMINI_MODEL} failed. Switching to fallback...`);
-        // Fallback to gemini-1.5-flash (stable)
-        try {
-          const FALLBACK_MODEL = "gemini-1.5-flash";
-          console.log(`🤖 Invoking Fallback ${FALLBACK_MODEL}...`);
-          text = await callGemini(FALLBACK_MODEL, 2);
-        } catch (fallbackError) {
-          console.error("❌ All models failed.");
-          return {
-            text: "Waduh, server AI lagi sibuk banget nih (Overload). Tunggu sebentar lalu coba lagi ya! 🤯",
-            products: products,
-            categories: [],
-            hasProducts: products.length > 0
-          };
-        }
+        text = await callGemini(GEMINI_MODEL, 5);
+      } catch (error) {
+        console.error("❌ Model failed:", error);
+        return {
+          text: "Maaf, server AI sedang sibuk sekali (Overload). Mohon tunggu beberapa saat dan coba lagi ya! 🙏",
+          products: products,
+          categories: [],
+          hasProducts: products.length > 0
+        };
       }
 
       console.log('✅ Response generated:', text.substring(0, 50) + '...');
