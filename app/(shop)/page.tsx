@@ -204,7 +204,7 @@ export default function ShopPage() {
             <div className="flex items-center space-x-3 mb-3">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-primary">
                 <img
-                  src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center"
+                  src={LogoImage.src}
                   alt="de.amoura Logo"
                   className="w-full h-full object-cover"
                 />
