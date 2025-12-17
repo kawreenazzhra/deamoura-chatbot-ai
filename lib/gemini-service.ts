@@ -38,21 +38,59 @@ export class DeAmouraChatbot {
       }
 
       // 1. Search for relevant products and FAQs based on the message
-      const cleanMessage = userMessage.toLowerCase().replace(/[^\w\s]/g, '');
-      const keywords = cleanMessage.split(" ").filter(w => w.length > 2);
+      // Clean message: remove non-alphanumeric chars (keep spaces), lowercase, trim
+      const cleanMessage = userMessage.toLowerCase().replace(/[^\w\s]/g, ' ').trim();
 
+      // Initial Search (Exact phrase match attempts)
       let products: any[] = [];
       let faqs: any[] = [];
 
-      if (keywords.length > 0) {
-        // Search Products
-        products = await searchProducts(cleanMessage);
-        // Search FAQs
-        faqs = await getFAQ(cleanMessage);
+      // Strategy A: Direct Search
+      console.log('🔍 Strategy A: Direct Search ->', cleanMessage);
+      products = await searchProducts(cleanMessage);
+      faqs = await getFAQ(cleanMessage);
+
+      // Strategy B: Smart Search (Remove Stop Words)
+      if (products.length === 0) {
+        const STOP_WORDS = [
+          'ada', 'nggak', 'enggak', 'tidak', 'mau', 'beli', 'cari', 'tolong', 'plis', 'please',
+          'kak', 'min', 'gan', 'sis', 'hallo', 'halo', 'hai', 'hi', 'apakah', 'yang', 'dan',
+          'atau', 'di', 'ke', 'dari', 'ini', 'itu', 'dong', 'sih', 'kok', 'punya', 'lihat', 'coba', 'tes'
+        ];
+
+        // Remove stop words and extra spaces
+        const words = cleanMessage.split(/\s+/);
+        const keywords = words.filter(w => !STOP_WORDS.includes(w) && w.length > 2);
+        const smartQuery = keywords.join(" ");
+
+        if (smartQuery && smartQuery !== cleanMessage) {
+          console.log('🔍 Strategy B: Smart Search (Cleaned) ->', smartQuery);
+          products = await searchProducts(smartQuery);
+          if (products.length === 0 && faqs.length === 0) {
+            faqs = await getFAQ(smartQuery);
+          }
+        }
+
+        // Strategy C: Individual Keywords (if smart search fails)
+        if (products.length === 0 && keywords.length > 0) {
+          // Try searching for the longest word first (likely the most unique part of a product name)
+          // e.g., "pashmina silk" -> "pashmina" (common) vs "silk" (material)
+          const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length);
+
+          for (const keyword of sortedKeywords) {
+            console.log('🔍 Strategy C: Keyword Fallback ->', keyword);
+            const keywordResults = await searchProducts(keyword);
+            if (keywordResults.length > 0) {
+              products = keywordResults;
+              break; // Found something!
+            }
+          }
+        }
       }
 
-      // Fallback
+      // Fallback: Featured Products if absolutely nothing found
       if (products.length === 0) {
+        console.log('⚠️ No products found. Fetching featured.');
         products = await getFeaturedProducts();
         products = products.slice(0, 3);
       }

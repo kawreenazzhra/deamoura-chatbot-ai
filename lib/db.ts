@@ -96,9 +96,9 @@ export async function searchProducts(query: string) {
     SELECT p.*, c.name as categoryName, c.slug as categorySlug 
     FROM Product p 
     LEFT JOIN Category c ON p.categoryId = c.id 
-    WHERE p.isActive = 1 AND (p.name LIKE ? OR p.description LIKE ?)
+    WHERE p.isActive = 1 AND (p.name LIKE ? OR p.description LIKE ? OR c.name LIKE ?)
     LIMIT 3
-  `, [searchTerm, searchTerm]);
+  `, [searchTerm, searchTerm, searchTerm]);
 
   return (rows as any[]).map(row => ({
     ...row,
