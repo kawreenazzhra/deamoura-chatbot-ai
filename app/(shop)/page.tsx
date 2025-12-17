@@ -226,9 +226,9 @@ export default function ShopPage() {
                 <Instagram className="w-4 h-4" />
                 <span>@de.amoura</span>
               </a>
-              <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 text-primary-foreground/80 hover:text-white transition-colors text-sm">
+              <a href="https://wa.me/6282284796648" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 text-primary-foreground/80 hover:text-white transition-colors text-sm">
                 <Phone className="w-4 h-4" />
-                <span>+62 812-3456-7890</span>
+                <span>+62 822-8479-6648</span>
               </a>
               <div className="flex items-center space-x-2 text-sm text-primary-foreground/80">
                 <MapPin className="w-4 h-4" />
@@ -253,6 +253,14 @@ export default function ShopPage() {
     const materials = safeJsonParse(selectedProduct.materials);
     const variants = safeJsonParse((selectedProduct as any).variants);
 
+    // --- LOGIKA VARIAN GAMBAR ---
+    const currentVariant = selectedColor 
+      ? variants.find((v: any) => v.name === selectedColor) 
+      : null;
+
+    const displayImage = currentVariant?.image || selectedProduct.imageUrl;
+    // ----------------------------
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-primary flex flex-col">
@@ -262,8 +270,6 @@ export default function ShopPage() {
               Kembali
             </button>
             <div className="flex items-center gap-4">
-              <button className="hover:bg-primary/90 p-2 rounded-full transition-colors"><Heart className="w-5 h-5" /></button>
-              <button className="hover:bg-primary/90 p-2 rounded-full transition-colors"><Share2 className="w-5 h-5" /></button>
               <button onClick={handleCloseProduct} className="hover:bg-primary/90 p-2 rounded-full transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -273,9 +279,15 @@ export default function ShopPage() {
           <div className="p-6 overflow-y-auto flex-1">
             <div className="md:grid md:grid-cols-2 gap-8 items-start">
               <div className="mb-6 md:mb-0 md:max-w-sm">
-                <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4 bg-gray-100 flex items-center justify-center">
-                  {selectedProduct.imageUrl ? (
-                    <Image src={selectedProduct.imageUrl} alt={selectedProduct.name} fill className="object-cover" />
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4 bg-gray-100 flex items-center justify-center transition-all duration-300">
+                  {displayImage ? (
+                    <Image 
+                      key={displayImage} // Force re-render animation
+                      src={displayImage} 
+                      alt={selectedProduct.name} 
+                      fill 
+                      className="object-cover animate-in fade-in duration-300" 
+                    />
                   ) : (
                     <ShoppingBag className="w-24 h-24 text-gray-400" />
                   )}
@@ -294,12 +306,6 @@ export default function ShopPage() {
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">{selectedProduct.name}</h1>
                 <div className="mb-6">
                   <p className="text-4xl font-bold text-primary">Rp {selectedProduct.price.toLocaleString()}</p>
-                  <div className="h-8 w-[1px] bg-border"></div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Star className="w-4 h-4 text-accent fill-accent mr-1" />
-                    <span className="font-medium text-primary mr-1">4.9</span>
-                    (86 Reviews)
-                  </div>
                 </div>
 
                 {colors.length > 0 && (
@@ -330,30 +336,12 @@ export default function ShopPage() {
                   </div>
                 )}
 
-                {materials.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Bahan</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {materials.map((material: string, index: number) => (
-                        <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">{material}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center text-gray-700"><Truck className="w-5 h-5 text-green-600 mr-2" /><span className="text-sm">Gratis Ongkir</span></div>
-                  <div className="flex items-center text-gray-700"><Package className="w-5 h-5 text-blue-600 mr-2" /><span className="text-sm">Pengiriman Cepat</span></div>
-                  <div className="flex items-center text-gray-700"><RotateCcw className="w-5 h-5 text-purple-600 mr-2" /><span className="text-sm">Garansi 7 Hari</span></div>
-                </div>
-
                 <div className="mb-8">
                   <h3 className="text-sm font-semibold text-primary mb-2 uppercase tracking-wide">Tentang Produk</h3>
                   <p className="text-muted-foreground leading-relaxed">{selectedProduct.description}</p>
                 </div>
 
                 <div className="flex gap-4 mt-4">
-                  <button className="flex-1 bg-white border border-primary/20 text-primary py-4 rounded-xl font-semibold hover:bg-secondary/30 transition-colors">Add to Bag</button>
                   <a href={selectedProduct.marketplaceUrl || "#"} target="_blank" rel="noopener noreferrer" className="flex-[2] premium-gradient text-white text-center py-4 rounded-xl font-semibold hover:opacity-90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center">Beli Sekarang</a>
                 </div>
               </div>
@@ -376,6 +364,9 @@ export default function ShopPage() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-accent/10 blur-[80px] -z-10 rounded-full"></div>
           <span className="inline-block py-1 px-3 rounded-full bg-accent/10 text-accent-foreground text-xs font-semibold tracking-wider mb-4 border border-accent/20">NEW COLLECTION 2025</span>
           <h2 className="text-4xl md:text-5xl font-bold text-primary mb-4 font-serif">Discover Your Elegance</h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+            Koleksi eksklusif dengan warna-warna earth tone yang lembut dan material premium yang nyaman dipakai seharian.
+          </p>
         </div>
 
         {/* Search & Filter Bar */}
