@@ -1,7 +1,7 @@
 // app/shop/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   ShoppingBag, Search, X, ArrowLeft, Heart,
@@ -47,7 +47,7 @@ const safeJsonParse = (data: any): any[] => {
   return Array.isArray(data) ? data : [];
 };
 
-export default function ShopPage() {
+function ShopContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productSlug = searchParams.get('product');
@@ -66,7 +66,7 @@ export default function ShopPage() {
   ]);
 
   // --- EFFECTS ---
-  
+
   // Handle Scroll
   useEffect(() => {
     const handleScroll = () => {
@@ -555,5 +555,13 @@ export default function ShopPage() {
       <ProductDetailModal />
       <ChatbotComponent />
     </div>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background animate-pulse" />}>
+      <ShopContent />
+    </Suspense>
   );
 }
