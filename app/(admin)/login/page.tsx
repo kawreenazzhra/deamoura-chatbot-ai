@@ -30,7 +30,8 @@ export default function AdminLogin() {
       }
 
       // Token sudah disave di cookie oleh API
-      router.push('/admin')
+      router.push('/d033e22ae348aeb5660fc2140aec35850c4da997/products') 
+      router.refresh()
     } catch (err) {
       setError('Error occurred during login')
       console.error(err)

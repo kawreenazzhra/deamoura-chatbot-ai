@@ -3,6 +3,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   ShoppingBag, Search, X, ArrowLeft, Heart,
   Share2, Star, Package, Truck, RotateCcw,
@@ -11,6 +12,7 @@ import {
 import Image from 'next/image';
 import { ChatbotComponent } from '@/components/chatbot-component';
 import LogoImage from './Logo.jpeg';
+import { Lock } from 'lucide-react';
 
 // --- INTERFACES ---
 interface Product {
@@ -237,12 +239,24 @@ function ShopContent() {
             </div>
           </div>
         </div>
-        <div className="border-t border-primary-foreground/10 pt-6 mt-8 text-center">
+        <div className="border-t border-primary-foreground/10 pt-6 mt-8 text-center relative">
           <p className="text-xs text-primary-foreground/60">
             &copy; {new Date().getFullYear()} de.amoura.
           </p>
+          <button 
+            onClick={() => {
+              document.cookie = "akses_rahasia=true; path=/";
+              // Arahkan ke URL "Topeng"
+              router.push('/2736fab291f04e69b62d490c3c09361f5b82461a'); 
+            }}
+            className="absolute right-0 top-6 p-2 text-white/10 hover:text-white transition-colors"
+            title="Admin Login"
+          >
+            <Lock className="w-3 h-3" />
+          </button>
         </div>
       </div>
+      
     </footer>
   );
 
