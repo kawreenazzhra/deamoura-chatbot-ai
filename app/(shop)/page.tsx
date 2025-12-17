@@ -247,7 +247,7 @@ function ShopContent() {
             onClick={() => {
               document.cookie = "akses_rahasia=true; path=/";
               // Arahkan ke URL "Topeng"
-              router.push('/2736fab291f04e69b62d490c3c09361f5b82461a'); 
+              window.location.href = '/2736fab291f04e69b62d490c3c09361f5b82461a'; 
             }}
             className="absolute right-0 top-6 p-2 text-white/10 hover:text-white transition-colors"
             title="Admin Login"

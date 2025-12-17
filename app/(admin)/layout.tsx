@@ -19,13 +19,14 @@ export default function AdminLayout({
 
   // Cek apakah user sedang berada di halaman login
   // Sesuaikan '/login' ini dengan URL halaman login admin kamu
-  const isLoginPage = pathname === '/login'; 
+  // Cek apakah user sedang berada di halaman login (URL Hash atau /login internal)
+  const isLoginPage = pathname === '/login' || pathname === '/2736fab291f04e69b62d490c3c09361f5b82461a';
 
   useEffect(() => {
     // Kalo lagi di halaman Login, STOP! Jangan cek auth, biarkan user ngetik password.
     if (isLoginPage) {
-        setIsLoading(false);
-        return;
+      setIsLoading(false);
+      return;
     }
 
     const checkAuth = async () => {
@@ -34,11 +35,11 @@ export default function AdminLayout({
         if (res.ok) {
           setIsAuth(true)
         } else {
-          router.push('/login') // Lempar ke login kalau belum auth
+          router.push('/') // Lempar ke Home kalau belum auth (Middleware akan blok /login langsung)
         }
       } catch (e) {
         console.error('Auth check failed', e)
-        router.push('/login')
+        router.push('/')
       } finally {
         setIsLoading(false)
       }
@@ -48,8 +49,12 @@ export default function AdminLayout({
   }, [router, isLoginPage])
 
   const handleLogout = () => {
+    // Hapus Token Admin & Tiket Rahasia (Biar pintu kekunci lagi)
     document.cookie = 'admin_token=; path=/; max-age=0'
-    router.push('/login')
+    document.cookie = 'akses_rahasia=; path=/; max-age=0'
+
+    // Redirect ke Home
+    window.location.href = '/'
   }
 
   // --- TAMPILAN KHUSUS HALAMAN LOGIN ---
@@ -59,7 +64,7 @@ export default function AdminLayout({
   }
 
   // --- TAMPILAN ADMIN PANEL (DENGAN SIDEBAR) ---
-  
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
