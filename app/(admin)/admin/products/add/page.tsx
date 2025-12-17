@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Upload, Save, X, Plus, Image as ImageIcon, Trash2 } from 'lucide-react'
 import Link from 'next/link'
@@ -18,10 +18,11 @@ export default function AddProductPage() {
   const variantInputRef = useRef<HTMLInputElement>(null)
 
   const [mainImage, setMainImage] = useState<string>("")
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([])
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
-    category: 'Pashmina',
+    category: '',
     price: '',
     stock: '',
     description: '',
@@ -29,6 +30,13 @@ export default function AddProductPage() {
   })
 
   const [variants, setVariants] = useState<ProductVariant[]>([])
+  
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => setCategories(data))
+      .catch(err => console.error("Error fetching categories:", err));
+  }, []);
 
   const convertToBase64 = (file: File) => {
     return new Promise<string>((resolve, reject) => {
@@ -116,11 +124,14 @@ export default function AddProductPage() {
           description: formData.description,
           price: formData.price,
           stock: formData.stock,
-          categoryId: null,
+          
+          // 5. UBAH BAGIAN INI: Convert string ke Int
+          categoryId: formData.category ? parseInt(formData.category) : null,
+          
           materials: variants.map(v => v.name),
           colors: colors,
           imageBase64: mainImage,
-          variants: variants, // Send full variant objects with images
+          variants: variants, 
           marketplaceUrl: formData.marketplaceUrl,
           isActive: true,
           isFeatured: false
@@ -248,12 +259,22 @@ export default function AddProductPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-foreground/80 mb-2">Kategori</label>
-                <select name="category" value={formData.category} onChange={handleChange} className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:ring-2 focus:ring-ring outline-none bg-white transition-all">
-                  <option value="Pashmina">Pashmina</option>
-                  <option value="Segi Empat">Segi Empat</option>
-                  <option value="Bergo">Bergo</option>
-                  <option value="Khimar">Khimar</option>
-                  <option value="Sport">Sport</option>
+                
+                {/* 6. UBAH SELECT INI */}
+                <select 
+                  name="category" 
+                  value={formData.category} 
+                  onChange={handleChange} 
+                  className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:ring-2 focus:ring-ring outline-none bg-white transition-all" 
+                  required
+                >
+                  <option value="">Pilih Kategori</option>
+                  {/* Mapping data dari state categories */}
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>

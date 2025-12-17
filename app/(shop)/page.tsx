@@ -272,15 +272,9 @@ export default function ShopPage() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id.toString())}
-<<<<<<< HEAD
-                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap flex-shrink-0 ${selectedCategory.toString() === cat.id.toString()
-                  ? 'bg-orange-700 text-white shadow-lg transform scale-105 ring-2 ring-orange-200'
-                  : 'bg-white text-orange-700 border border-orange-100 hover:bg-orange-50 hover:border-orange-200 shadow-sm'
-=======
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${selectedCategory.toString() === cat.id.toString()
                   ? 'premium-gradient text-white shadow-md transform scale-105'
                   : 'bg-white text-classik-strong border border-classik hover:bg-secondary/50'
->>>>>>> 866c3986aff0121df74979717e42fa2aa4d43591
                   }`}
               >
                 {cat.name}

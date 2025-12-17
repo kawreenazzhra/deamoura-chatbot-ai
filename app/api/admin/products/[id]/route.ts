@@ -63,6 +63,7 @@ export async function PUT(
     const data = await request.json()
     const {
       name,
+      slug,
       description,
       price,
       stock,
@@ -131,6 +132,7 @@ export async function PUT(
 
     const updateData: any = {
       name,
+      slug,
       description,
       price: safeInt(price),
       stock: safeInt(stock),
