@@ -12,6 +12,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChatbotComponent } from '@/components/chatbot-component';
+import LogoImage from './Logo.jpeg'
 
 interface Product {
   id: number;
@@ -141,14 +142,14 @@ export default function ShopPage() {
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-primary">
                 <img
-                  src="https://images.unsplash.com/photo-1563207153-f403bf289096?w=100&h=100&q=80&fit=crop&crop=center"
+                  src={LogoImage.src}
                   alt="de.amoura Logo"
                   className="w-full h-full object-cover"
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-primary-foreground">de.amoura</h1>
-                <p className="text-xs text-primary-foreground/80">Hijab & Fashion Muslim</p>
+                <h1 className="text-2xl font-bold text-primary">de.amoura</h1>
+                <p className="text-xs text-primary/80">Hijab & Fashion Muslim</p>
               </div>
             </div>
           </div>
