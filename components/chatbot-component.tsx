@@ -127,7 +127,7 @@ function ChatbotComponentInner() {
                                             : 'bg-secondary text-foreground rounded-bl-none'
                                             }`}
                                     >
-                                        <p>{msg.message}</p>
+                                        <p className="whitespace-pre-wrap">{msg.message}</p>
                                     </div>
                                 </div>
                             ))
